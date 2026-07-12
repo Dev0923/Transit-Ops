@@ -104,14 +104,15 @@ function FormField({ label, error, hint, children }: { label: string; error?: st
 
 /* ---------- Create Trip panel ---------- */
 
-type CreateState = { source: string; destination: string; vehicleReg: string; driverName: string; cargoKg: string; distanceKm: string }
+type CreateState = { source: string; destination: string; vehicleReg: string; driverName: string; cargoKg: string; distanceKm: string; date: string; time: string }
 
 function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSave }: { existing: Trip[]; dbVehicles: any[]; dbDrivers: any[]; user: any; onCancel: () => void; onSave: (t: Trip, dispatch: boolean) => void }) {
   const isDriver = user?.role === 'DRIVER'
-  const availableVehicles = useMemo(() => dbVehicles.filter((v) => v.status === 'AVAILABLE'), [dbVehicles])
+  // Allow all vehicles to be selected for Drafts, not just available ones.
+  const availableVehicles = dbVehicles
   const availableDrivers = useMemo(() => dbDrivers.filter((d) => d.isActive), [dbDrivers])
 
-  const [form, setForm] = useState<CreateState>({ source: '', destination: '', vehicleReg: '', driverName: isDriver ? user.id : '', cargoKg: '', distanceKm: '' })
+  const [form, setForm] = useState<CreateState>({ source: '', destination: '', vehicleReg: '', driverName: isDriver ? user.id : '', cargoKg: '', distanceKm: '', date: new Date().toISOString().slice(0, 10), time: '09:00' })
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const set = (k: keyof CreateState, v: string) => setForm((f) => ({ ...f, [k]: v }))
 
@@ -130,10 +131,12 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
     else if (cargoOver) e.cargoKg = `⚠️ Exceeds vehicle's max capacity (${selectedVehicle!.capacityKg.toLocaleString('en-IN')} kg)`
     if (form.distanceKm === '') e.distanceKm = 'Planned distance is required.'
     else if (Number(form.distanceKm) < 0) e.distanceKm = 'Value cannot be negative.'
+    if (!form.date) e.date = 'Date is required.'
+    if (!form.time) e.time = 'Time is required.'
     return e
   }, [form, cargoNum, cargoOver, selectedVehicle])
 
-  const requiredFilled = form.source && form.destination && form.vehicleReg && form.driverName && form.cargoKg !== '' && form.distanceKm !== ''
+  const requiredFilled = form.source && form.destination && form.vehicleReg && form.driverName && form.cargoKg !== '' && form.distanceKm !== '' && form.date && form.time
   const blockers = form.vehicleReg && form.driverName && form.cargoKg !== '' ? tripBlockers(form.vehicleReg, form.driverName, cargoNum, dbVehicles, dbDrivers) : []
   const canDispatch = Object.keys(errors).length === 0 && blockers.length === 0
 
@@ -147,13 +150,14 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
       cargoKg: cargoNum,
       distanceKm: Number(form.distanceKm),
       status: 'Draft',
-      date: new Date().toISOString().slice(0, 10),
+      date: form.date,
+      time: form.time,
       ownedBySelf: true,
     }
   }
 
   function saveDraft() {
-    setTouched({ source: true, destination: true, vehicleReg: true, driverName: true, cargoKg: true, distanceKm: true })
+    setTouched({ source: true, destination: true, vehicleReg: true, driverName: true, cargoKg: true, distanceKm: true, date: true, time: true })
     // A draft may be saved even if cargo exceeds capacity (it stays a Draft
     // and can't be dispatched until fixed), but other fields must be valid.
     const draftErrors = { ...errors }
@@ -163,7 +167,7 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
   }
 
   function createDispatch() {
-    setTouched({ source: true, destination: true, vehicleReg: true, driverName: true, cargoKg: true, distanceKm: true })
+    setTouched({ source: true, destination: true, vehicleReg: true, driverName: true, cargoKg: true, distanceKm: true, date: true, time: true })
     if (!canDispatch) return
     onSave({ ...build(), status: 'Dispatched' }, true)
   }
@@ -190,7 +194,7 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
           <input className={inputCls(!!err('destination'))} placeholder="Enter destination" value={form.destination} onChange={(e) => set('destination', e.target.value)} onBlur={() => setTouched((t) => ({ ...t, destination: true }))} />
         </FormField>
 
-        <FormField label="Vehicle" error={err('vehicleReg')} hint="Showing only available vehicles.">
+        <FormField label="Vehicle" error={err('vehicleReg')} hint="Select a vehicle for this trip.">
           <div className="relative">
             <select
               value={form.vehicleReg}
@@ -201,7 +205,7 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
               <option value="">Select a vehicle…</option>
               {availableVehicles.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.reg} — {v.model} ({(v.capacity || 5000).toLocaleString('en-IN')} kg)
+                  {v.registrationNo || v.reg} — {v.type} ({v.make} {v.model}) - {v.capacity ? v.capacity.toLocaleString('en-IN') : '5,000'} kg
                 </option>
               ))}
             </select>
@@ -242,6 +246,15 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
               <input type="number" className={`${inputCls(!!err('distanceKm'))} pr-10`} placeholder="0" value={form.distanceKm} onChange={(e) => set('distanceKm', e.target.value)} onBlur={() => setTouched((t) => ({ ...t, distanceKm: true }))} />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-medium text-slate-400">km</span>
             </div>
+          </FormField>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField label="Scheduled Date" error={err('date')}>
+            <input type="date" className={inputCls(!!err('date'))} value={form.date} onChange={(e) => set('date', e.target.value)} onBlur={() => setTouched((t) => ({ ...t, date: true }))} />
+          </FormField>
+          <FormField label="Scheduled Time" error={err('time')}>
+            <input type="time" className={inputCls(!!err('time'))} value={form.time} onChange={(e) => set('time', e.target.value)} onBlur={() => setTouched((t) => ({ ...t, time: true }))} />
           </FormField>
         </div>
 
@@ -462,13 +475,15 @@ export default function TripManagement() {
 
   async function addTrip(t: Trip, dispatch: boolean) {
     try {
+      const dateTimeString = `${t.date}T${t.time || '09:00'}:00.000Z`
       const payload = {
         origin: t.source,
         destination: t.destination,
         vehicleId: t.vehicleReg,
         driverId: t.driverName,
         distance: t.distanceKm,
-        scheduledDate: new Date().toISOString(),
+        scheduledDate: new Date(dateTimeString).toISOString(),
+        cargoWeight: t.cargoKg,
         status: dispatch ? 'IN_PROGRESS' : 'SCHEDULED'
       }
       await tripService.create(payload)

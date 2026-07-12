@@ -10,6 +10,7 @@ export type Trip = {
   distanceKm: number
   status: TripStatus
   date: string // planned date, ISO
+  time?: string // planned time, e.g. "09:00"
   ownedBySelf?: boolean // created by / assigned to the logged-in driver
 }
 
