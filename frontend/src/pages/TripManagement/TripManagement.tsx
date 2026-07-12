@@ -106,11 +106,12 @@ function FormField({ label, error, hint, children }: { label: string; error?: st
 
 type CreateState = { source: string; destination: string; vehicleReg: string; driverName: string; cargoKg: string; distanceKm: string }
 
-function CreateTripPanel({ existing, dbVehicles, dbDrivers, onCancel, onSave }: { existing: Trip[]; dbVehicles: any[]; dbDrivers: any[]; onCancel: () => void; onSave: (t: Trip, dispatch: boolean) => void }) {
+function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSave }: { existing: Trip[]; dbVehicles: any[]; dbDrivers: any[]; user: any; onCancel: () => void; onSave: (t: Trip, dispatch: boolean) => void }) {
+  const isDriver = user?.role === 'DRIVER'
   const availableVehicles = useMemo(() => dbVehicles.filter((v) => v.status === 'AVAILABLE'), [dbVehicles])
   const availableDrivers = useMemo(() => dbDrivers.filter((d) => d.isActive), [dbDrivers])
 
-  const [form, setForm] = useState<CreateState>({ source: '', destination: '', vehicleReg: '', driverName: '', cargoKg: '', distanceKm: '' })
+  const [form, setForm] = useState<CreateState>({ source: '', destination: '', vehicleReg: '', driverName: isDriver ? user.id : '', cargoKg: '', distanceKm: '' })
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const set = (k: keyof CreateState, v: string) => setForm((f) => ({ ...f, [k]: v }))
 
@@ -208,24 +209,26 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, onCancel, onSave }: 
           </div>
         </FormField>
 
-        <FormField label="Driver" error={err('driverName')} hint="Showing only available drivers with valid licenses.">
-          <div className="relative">
-            <select
-              value={form.driverName}
-              onChange={(e) => set('driverName', e.target.value)}
-              onBlur={() => setTouched((t) => ({ ...t, driverName: true }))}
-              className={`h-11 w-full appearance-none rounded-lg border px-3.5 pr-9 text-[14px] outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-500/15 ${err('driverName') ? 'border-red-400' : 'border-slate-300 hover:border-slate-400'} ${form.driverName ? 'text-navy-950' : 'text-slate-400'}`}
-            >
-              <option value="">Select a driver…</option>
-              {availableDrivers.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          </div>
-        </FormField>
+        {!isDriver && (
+          <FormField label="Driver" error={err('driverName')} hint="Showing only available drivers with valid licenses.">
+            <div className="relative">
+              <select
+                value={form.driverName}
+                onChange={(e) => set('driverName', e.target.value)}
+                onBlur={() => setTouched((t) => ({ ...t, driverName: true }))}
+                className={`h-11 w-full appearance-none rounded-lg border px-3.5 pr-9 text-[14px] outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-500/15 ${err('driverName') ? 'border-red-400' : 'border-slate-300 hover:border-slate-400'} ${form.driverName ? 'text-navy-950' : 'text-slate-400'}`}
+              >
+                <option value="">Select a driver…</option>
+                {availableDrivers.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            </div>
+          </FormField>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <FormField label="Cargo Weight" error={err('cargoKg')}>
@@ -380,7 +383,7 @@ export default function TripManagement() {
   const { user } = useAuth()
   const role = (user?.role || 'DRIVER') as RoleId
   const isDriver = role === 'DRIVER'
-  const canCreate = role === 'ADMIN' || role === 'MANAGER'
+  const canCreate = role === 'ADMIN' || role === 'MANAGER' || role === 'DRIVER'
   const actsAllowed = (t: Trip) => role === 'ADMIN' || role === 'MANAGER' || (isDriver && t.ownedBySelf)
 
   const [trips, setTrips] = useState<Trip[]>([])
@@ -617,7 +620,7 @@ export default function TripManagement() {
         <div className="fixed inset-0 z-40">
           <div className="animate-overlay-in absolute inset-0 bg-navy-950/40 backdrop-blur-[1px]" onClick={() => setPanelOpen(false)} />
           <div className="animate-panel-in absolute right-0 top-0 flex h-full w-full max-w-[460px] flex-col bg-white shadow-2xl">
-            <CreateTripPanel existing={trips} dbVehicles={dbVehicles} dbDrivers={dbDrivers} onCancel={() => setPanelOpen(false)} onSave={addTrip} />
+            <CreateTripPanel existing={trips} dbVehicles={dbVehicles} dbDrivers={dbDrivers} user={user} onCancel={() => setPanelOpen(false)} onSave={addTrip} />
           </div>
         </div>
       )}
