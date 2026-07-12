@@ -104,21 +104,30 @@ function FormField({ label, error, hint, children }: { label: string; error?: st
 
 /* ---------- Create Trip panel ---------- */
 
-type CreateState = { source: string; destination: string; vehicleReg: string; driverName: string; cargoKg: string; distanceKm: string; date: string; time: string }
+type CreateState = { source: string; destination: string; vehicleType: string; vehicleReg: string; driverName: string; cargoKg: string; distanceKm: string; date: string; time: string }
 
 function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSave }: { existing: Trip[]; dbVehicles: any[]; dbDrivers: any[]; user: any; onCancel: () => void; onSave: (t: Trip, dispatch: boolean) => void }) {
   const isDriver = user?.role === 'DRIVER'
-  // Allow all vehicles to be selected for Drafts, not just available ones.
-  const availableVehicles = dbVehicles
-  const availableDrivers = useMemo(() => dbDrivers.filter((d) => d.isActive), [dbDrivers])
-
-  const [form, setForm] = useState<CreateState>({ source: '', destination: '', vehicleReg: '', driverName: isDriver ? user.id : '', cargoKg: '', distanceKm: '', date: new Date().toISOString().slice(0, 10), time: '09:00' })
+  
+  const [form, setForm] = useState<CreateState>({ source: '', destination: '', vehicleType: '', vehicleReg: '', driverName: isDriver ? user.id : '', cargoKg: '', distanceKm: '', date: new Date().toISOString().slice(0, 10), time: '09:00' })
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const set = (k: keyof CreateState, v: string) => setForm((f) => ({ ...f, [k]: v }))
 
+  // Compute available vehicle types from dbVehicles
+  const vehicleTypes = useMemo(() => Array.from(new Set(dbVehicles.map(v => v.type).filter(Boolean))), [dbVehicles])
+  
+  // Filter vehicles by selected type
+  const availableVehicles = useMemo(() => {
+    if (!form.vehicleType) return dbVehicles
+    return dbVehicles.filter(v => v.type === form.vehicleType)
+  }, [dbVehicles, form.vehicleType])
+
+  const availableDrivers = useMemo(() => dbDrivers.filter((d) => d.isActive), [dbDrivers])
+
   const selectedVehicle = dbVehicles.find((v) => v.id === form.vehicleReg)
   const cargoNum = Number(form.cargoKg)
-  const cargoOver = !!selectedVehicle && form.cargoKg !== '' && cargoNum > selectedVehicle.capacityKg
+  const capacity = selectedVehicle?.capacity || 5000 // Fallback if missing
+  const cargoOver = !!selectedVehicle && form.cargoKg !== '' && cargoNum > capacity
 
   const errors = useMemo(() => {
     const e: Record<string, string> = {}
@@ -128,7 +137,7 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
     if (!form.driverName) e.driverName = 'Select a driver.'
     if (form.cargoKg === '') e.cargoKg = 'Cargo weight is required.'
     else if (cargoNum < 0) e.cargoKg = 'Value cannot be negative.'
-    else if (cargoOver) e.cargoKg = `⚠️ Exceeds vehicle's max capacity (${selectedVehicle!.capacityKg.toLocaleString('en-IN')} kg)`
+    else if (cargoOver) e.cargoKg = `⚠️ Exceeds vehicle's max capacity (${capacity.toLocaleString('en-IN')} kg)`
     if (form.distanceKm === '') e.distanceKm = 'Planned distance is required.'
     else if (Number(form.distanceKm) < 0) e.distanceKm = 'Value cannot be negative.'
     if (!form.date) e.date = 'Date is required.'
@@ -192,6 +201,28 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
         </FormField>
         <FormField label="Destination" error={err('destination')}>
           <input className={inputCls(!!err('destination'))} placeholder="Enter destination" value={form.destination} onChange={(e) => set('destination', e.target.value)} onBlur={() => setTouched((t) => ({ ...t, destination: true }))} />
+        </FormField>
+
+        <FormField label="Vehicle Type" error={err('vehicleType')} hint="Filter vehicles by type (Optional)">
+          <div className="relative">
+            <select
+              value={form.vehicleType}
+              onChange={(e) => {
+                set('vehicleType', e.target.value)
+                set('vehicleReg', '') // Reset vehicle when type changes
+              }}
+              onBlur={() => setTouched((t) => ({ ...t, vehicleType: true }))}
+              className={`h-11 w-full appearance-none rounded-lg border px-3.5 pr-9 text-[14px] outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-500/15 border-slate-300 hover:border-slate-400 ${form.vehicleType ? 'text-navy-950' : 'text-slate-400'}`}
+            >
+              <option value="">All Vehicle Types</option>
+              {vehicleTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+            <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          </div>
         </FormField>
 
         <FormField label="Vehicle" error={err('vehicleReg')} hint="Select a vehicle for this trip.">
@@ -394,7 +425,7 @@ function ModalShell({ children, onClose }: { children: ReactNode; onClose: () =>
 
 export default function TripManagement() {
   const { user } = useAuth()
-  const role = (user?.role || 'DRIVER') as RoleId
+  const role = user?.role as RoleId
   const isDriver = role === 'DRIVER'
   const canCreate = role === 'ADMIN' || role === 'MANAGER' || role === 'DRIVER'
   const actsAllowed = (t: Trip) => role === 'ADMIN' || role === 'MANAGER' || (isDriver && t.ownedBySelf)

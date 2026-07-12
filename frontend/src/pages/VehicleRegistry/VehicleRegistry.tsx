@@ -438,7 +438,7 @@ function DetailPanel({ vehicle, onClose, canSeeCost }: { vehicle: Vehicle; onClo
 
 export default function VehicleRegistry() {
   const { user } = useAuth()
-  const role = (user?.role || 'DRIVER') as RoleId
+  const role = user?.role as RoleId
   const canEdit = role === 'ADMIN' || role === 'MANAGER'
   const canSeeCost = role === 'ADMIN' || role === 'MANAGER' || role === 'FINANCIAL_ANALYST'
   const [vehicles, setVehicles] = useState<Vehicle[]>([])

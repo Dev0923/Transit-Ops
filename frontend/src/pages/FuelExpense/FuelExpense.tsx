@@ -383,7 +383,7 @@ function CostSummaryPanel({ dbVehicles, maintRecords, vehicleReg, entries, onClo
 
 export default function FuelExpense() {
   const { user } = useAuth()
-  const role = (user?.role || 'DRIVER') as RoleId
+  const role = user?.role as RoleId
   const isDriver = role === 'DRIVER'
   const canLog = role === 'ADMIN' || role === 'MANAGER' || isDriver
   const canDelete = role === 'ADMIN' || role === 'MANAGER'

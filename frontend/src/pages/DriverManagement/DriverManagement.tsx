@@ -142,7 +142,7 @@ function DriverForm({
   editing?: Driver
   reduced?: boolean // driver editing own profile → limited fields
   existing: Driver[]
-  onCancel: () => void
+  onCancel?: () => void
   onSave: (d: Driver) => void
 }) {
   const [form, setForm] = useState<FormState>(
@@ -352,7 +352,7 @@ function DetailPanel({ driver, onClose }: { driver: Driver; onClose: () => void 
 
 export default function DriverManagement() {
   const { user } = useAuth()
-  const role = (user?.role || 'DRIVER') as RoleId
+  const role = user?.role as RoleId
   const isDriver = role === 'DRIVER'
   const canRegister = role === 'ADMIN' || role === 'MANAGER'
   const canSuspend = role === 'ADMIN' || role === 'MANAGER'
@@ -450,7 +450,7 @@ export default function DriverManagement() {
       <div className="font-sans text-navy-950">
         <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
-            <EditModal
+            <DriverForm
               existing={drivers}
               editing={me}
               reduced={true}

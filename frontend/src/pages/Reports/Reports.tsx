@@ -134,7 +134,7 @@ function FilterSelect({ label, value, options, onChange }: { label: string; valu
 
 export default function Reports() {
   const { user } = useAuth()
-  const role = (user?.role || 'DRIVER') as RoleId
+  const role = user?.role as RoleId
   const isSafety = role === 'MANAGER'
   const canExport = role === 'MANAGER' || role === 'MANAGER' || role === 'ADMIN'
   const visibleTabs = TABS.filter((t) => t.roles.includes(role))

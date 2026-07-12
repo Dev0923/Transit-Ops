@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { tripService } from '../../services/tripService'
+import { dashboardService } from '../../services/dashboardService'
 import {
   ResponsiveContainer,
   XAxis,
@@ -16,7 +17,7 @@ import {
   Bar,
   Legend,
 } from 'recharts'
-import { PlusIcon, AlertIcon, RouteIcon, WrenchIcon, UsersIcon, FuelIcon, ShieldIcon, ChevronDownIcon, ClockIcon } from './icons'
+import { PlusIcon, AlertIcon, RouteIcon, WrenchIcon, UsersIcon, FuelIcon, ShieldIcon, ChevronDownIcon, ClockIcon, CoinIcon, GaugeIcon } from './icons'
 import {
   ROLES,
   ROLE_LABEL,
@@ -327,9 +328,434 @@ function DriverDashboard({ user }: { user: any }) {
   )
 }
 
+function FinancialAnalystDashboard({ user }: { user: any }) {
+  const navigate = useNavigate()
+  const [data, setData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [dateRange, setDateRange] = useState('This Month')
+  
+  async function fetchData() {
+    setLoading(true)
+    try {
+      const today = new Date()
+      let start = new Date()
+      let end = new Date()
+      
+      if (dateRange === 'This Month') {
+        start = new Date(today.getFullYear(), today.getMonth(), 1)
+      } else if (dateRange === 'Last Month') {
+        start = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+        end = new Date(today.getFullYear(), today.getMonth(), 0)
+      } else if (dateRange === 'This Quarter') {
+        const quarter = Math.floor(today.getMonth() / 3)
+        start = new Date(today.getFullYear(), quarter * 3, 1)
+      } else if (dateRange === 'Custom Range') {
+        // Mock custom range as last 30 days
+        start = new Date(today.setDate(today.getDate() - 30))
+      }
+      
+      const startStr = start.toISOString()
+      const endStr = end.toISOString()
+      
+      const res = await dashboardService.getFinancial(startStr, endStr)
+      setData(res.data)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [dateRange])
+
+  if (loading && !data) return <div className="p-8 text-center text-slate-500">Loading your dashboard...</div>
+
+  return (
+    <div className="font-sans text-navy-950">
+      <div className="border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
+        <div className="mx-auto max-w-[1440px] flex items-center justify-between">
+          <p className="text-[12px] font-medium text-emerald-700 bg-emerald-50 rounded-full px-3 py-1 inline-block">
+            Financial Analyst Dashboard — cost and profitability focused view, no operational/dispatch actions available
+          </p>
+          <div className="w-48">
+            <Select
+              label="Date Range"
+              value={dateRange}
+              onChange={setDateRange}
+              options={['This Month', 'Last Month', 'This Quarter', 'Custom Range']}
+            />
+          </div>
+        </div>
+      </div>
+
+      <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+          {/* --- Left column --- */}
+          <div className="flex flex-col gap-6">
+            
+            {/* KPI grid */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="group rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-navy-900/[0.04] transition hover:-translate-y-0.5 hover:shadow-md">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-navy-50 text-navy-800">
+                    <CoinIcon className="h-5 w-5" />
+                  </span>
+                  <TrendPill trend={Number(data?.costTrend?.toFixed(1) || 0)} good={false} />
+                </div>
+                <p className="text-[28px] font-bold text-navy-950">₹{data?.totalOperationalCost?.toLocaleString('en-IN')}</p>
+                <p className="mt-2 text-[12.5px] font-medium text-slate-500">Total Operational Cost</p>
+              </div>
+
+              <div className="group rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-navy-900/[0.04] transition hover:-translate-y-0.5 hover:shadow-md">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-amber-50 text-amber-600">
+                    <FuelIcon className="h-5 w-5" />
+                  </span>
+                </div>
+                <p className="text-[28px] font-bold text-navy-950">₹{data?.avgFuelCost?.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                <p className="mt-2 text-[12.5px] font-medium text-slate-500">Avg Fuel Cost / Vehicle</p>
+              </div>
+
+              <div className="group rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-navy-900/[0.04] transition hover:-translate-y-0.5 hover:shadow-md">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-teal-50 text-teal-700">
+                    <RouteIcon className="h-5 w-5" />
+                  </span>
+                </div>
+                <p className={`text-[28px] font-bold ${data?.averageROI >= 0 ? 'text-teal-600' : 'text-red-600'}`}>{data?.averageROI?.toFixed(2)}%</p>
+                <p className="mt-2 text-[12.5px] font-medium text-slate-500">Avg Vehicle ROI</p>
+              </div>
+
+              <div className="group rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-navy-900/[0.04] transition hover:-translate-y-0.5 hover:shadow-md">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-teal-50 text-teal-700">
+                    <GaugeIcon className="h-5 w-5" />
+                  </span>
+                </div>
+                <p className="text-[28px] font-bold text-navy-950">{data?.fleetUtilization?.toFixed(1)}%</p>
+                <p className="mt-2 text-[12.5px] font-medium text-slate-500">Fleet Utilization</p>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <Card title="Quick Actions">
+               <button onClick={() => navigate('/reports')} className="inline-flex items-center gap-1.5 rounded-lg bg-navy-800 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-navy-900">
+                  View Full Reports &rarr;
+               </button>
+            </Card>
+
+            {/* Charts Grid */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <Card title="Operational Cost Trend (Fuel vs Maintenance)" className="lg:col-span-2">
+                <div className="h-[240px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data?.costTrendData || []} margin={{ top: 6, right: 8, left: -20, bottom: 0 }} barGap={4}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#eef2f6" vertical={false} />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: '#f1f5f9' }} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                      <Bar dataKey="fuel" name="Fuel Cost" fill="#1e3a5f" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                      <Bar dataKey="maintenance" name="Maintenance Cost" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+
+              <Card title="Top 5 Vehicles by ROI">
+                <div className="h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data?.topVehiclesByROI || []} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#eef2f6" horizontal={false} />
+                      <XAxis type="number" hide />
+                      <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<ChartTooltip unit="%" />} cursor={{ fill: '#f1f5f9' }} />
+                      <Bar dataKey="roi" name="ROI" fill="#0d9488" radius={[0, 4, 4, 0]} barSize={20} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+
+              <Card title="Bottom 5 Vehicles by ROI">
+                <div className="h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data?.bottomVehiclesByROI || []} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#eef2f6" horizontal={false} />
+                      <XAxis type="number" hide />
+                      <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<ChartTooltip unit="%" />} cursor={{ fill: '#f1f5f9' }} />
+                      <Bar dataKey="roi" name="ROI" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={20} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+            </div>
+
+          </div>
+
+          {/* --- Right sidebar: activity feed --- */}
+          <Card title="Recent Financial Activity" className="h-fit xl:sticky xl:top-24">
+             <p className="text-[11px] text-slate-400 mb-4 pb-2 border-b border-slate-100">Scoped to cost/expense events only — excludes trip dispatch, driver duty, and license activity shown to other roles</p>
+            <ul className="space-y-1">
+              {!data?.activity || data.activity.length === 0 ? (
+                <li className="text-[12.5px] text-slate-500 py-2">No recent financial activity.</li>
+              ) : (
+                data.activity.map((ev: any) => {
+                  const Icon = ev.type === 'fuel' ? FuelIcon : WrenchIcon;
+                  const cls = ev.type === 'fuel' ? 'bg-navy-50 text-navy-700' : 'bg-amber-50 text-amber-600';
+                  return (
+                    <li key={ev.id} className="flex gap-3 rounded-lg p-2 transition hover:bg-slate-50">
+                      <span className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg ${cls}`}>
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[12.5px] leading-snug text-navy-800">{ev.text}</span>
+                        <span className="mt-0.5 block text-[11px] text-slate-400">{new Date(ev.time).toLocaleString()}</span>
+                      </span>
+                    </li>
+                  )
+                })
+              )}
+            </ul>
+          </Card>
+        </div>
+      </main>
+    </div>
+  )
+}
+
+function SafetyOfficerDashboard({ user }: { user: any }) {
+  const navigate = useNavigate()
+  const [data, setData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [licenseStatus, setLicenseStatus] = useState('All')
+  
+  async function fetchData() {
+    setLoading(true)
+    try {
+      const statusMap: Record<string, string> = {
+        'All': 'all',
+        'Valid': 'valid',
+        'Expiring Soon': 'expiring_soon',
+        'Expired': 'expired'
+      }
+      const res = await dashboardService.getSafety(statusMap[licenseStatus])
+      setData(res.data)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [licenseStatus])
+
+  if (loading && !data) return <div className="p-8 text-center text-slate-500">Loading your dashboard...</div>
+
+  // Create combined chart data
+  const chartData: any[] = []
+  if (data) {
+    data.topPerformers.forEach((d: any) => chartData.push({ ...d, group: 'Top Performers' }))
+    data.bottomPerformers.forEach((d: any) => chartData.push({ ...d, group: 'Needs Attention' }))
+  }
+
+  return (
+    <div className="font-sans text-navy-950">
+      <div className="border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
+        <div className="mx-auto max-w-[1440px] flex items-center justify-between">
+          <p className="text-[12px] font-medium text-purple-700 bg-purple-50 rounded-full px-3 py-1 inline-block">
+            Safety Officer Dashboard — driver compliance and safety focused view, no vehicle/dispatch operational actions available
+          </p>
+          <div className="w-48">
+            <Select
+              label="License Status"
+              value={licenseStatus}
+              onChange={setLicenseStatus}
+              options={['All', 'Valid', 'Expiring Soon', 'Expired']}
+            />
+          </div>
+        </div>
+      </div>
+
+      <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+          {/* --- Left column --- */}
+          <div className="flex flex-col gap-6">
+            
+            {/* KPI grid */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="group rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-teal-50 text-teal-700">
+                    <UsersIcon className="h-5 w-5" />
+                  </span>
+                </div>
+                <p className="text-[28px] font-bold text-navy-950">{data?.driversOnDuty || 0}</p>
+                <p className="mt-2 text-[12.5px] font-medium text-slate-500">Drivers On Duty</p>
+              </div>
+
+              <div className="group rounded-xl border-l-4 border-l-amber-500 border border-slate-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-amber-50 text-amber-600">
+                    <AlertIcon className="h-5 w-5" />
+                  </span>
+                </div>
+                <p className="text-[28px] font-bold text-navy-950">{data?.licensesExpiringSoon || 0}</p>
+                <p className="mt-2 text-[12.5px] font-medium text-slate-500">Licenses Expiring Soon</p>
+              </div>
+
+              <div className="group rounded-xl border-l-4 border-l-red-500 border border-slate-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-red-50 text-red-600">
+                    <ShieldIcon className="h-5 w-5" />
+                  </span>
+                </div>
+                <p className="text-[28px] font-bold text-navy-950">{data?.expiredLicenses || 0}</p>
+                <p className="mt-2 text-[12.5px] font-medium text-slate-500">Expired Licenses</p>
+              </div>
+
+              <div className="group rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-navy-50 text-navy-800">
+                    <ShieldIcon className="h-5 w-5" />
+                  </span>
+                  <TrendPill trend={Number(data?.safetyScoreTrend?.toFixed(1) || 0)} good={true} />
+                </div>
+                <p className="text-[28px] font-bold text-navy-950">{data?.averageSafetyScore?.toFixed(1) || 0}</p>
+                <p className="mt-2 text-[12.5px] font-medium text-slate-500">Average Safety Score</p>
+              </div>
+            </div>
+
+            {/* License Expiry Alert Widget */}
+            <Card title={`⚠️ License Expiry Alerts (${data?.alertDrivers?.length || 0})`}>
+               {data?.alertDrivers?.length === 0 ? (
+                 <div className="py-8 text-center text-slate-500">
+                   <p className="text-[14px]">No license expiry concerns at this time. ✅</p>
+                 </div>
+               ) : (
+                 <div className="overflow-x-auto">
+                   <table className="w-full text-left text-[13px]">
+                     <thead>
+                       <tr className="border-b border-slate-200 text-slate-500">
+                         <th className="pb-2 font-medium">Driver Name</th>
+                         <th className="pb-2 font-medium">License Number</th>
+                         <th className="pb-2 font-medium">Expiry Date</th>
+                         <th className="pb-2 font-medium">Days Remaining</th>
+                         <th className="pb-2 font-medium">Status</th>
+                       </tr>
+                     </thead>
+                     <tbody className="divide-y divide-slate-100">
+                       {data?.alertDrivers?.map((d: any) => {
+                         let rowClass = ''
+                         if (d.status === 'Expired') rowClass = 'bg-red-50/50 text-red-900'
+                         else if (d.daysRemaining <= 7) rowClass = 'bg-orange-50 text-orange-900'
+                         else if (d.status === 'Expiring Soon') rowClass = 'bg-yellow-50 text-yellow-900'
+                         
+                         let badgeClass = 'bg-slate-100 text-slate-600'
+                         if (d.status === 'Expired') badgeClass = 'bg-red-100 text-red-700'
+                         else if (d.status === 'Expiring Soon') badgeClass = 'bg-amber-100 text-amber-700'
+                         else if (d.status === 'Valid') badgeClass = 'bg-teal-100 text-teal-700'
+
+                         return (
+                           <tr key={d.id} className={`${rowClass} transition hover:opacity-90`}>
+                             <td className="py-2.5 font-medium">{d.name}</td>
+                             <td className="py-2.5">{d.licenseNumber}</td>
+                             <td className="py-2.5">{new Date(d.expiryDate).toLocaleDateString()}</td>
+                             <td className="py-2.5 font-medium">{d.daysRemaining}</td>
+                             <td className="py-2.5">
+                               <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${badgeClass}`}>{d.status}</span>
+                             </td>
+                           </tr>
+                         )
+                       })}
+                     </tbody>
+                   </table>
+                 </div>
+               )}
+               <div className="mt-4 border-t border-slate-100 pt-3">
+                 <button onClick={() => navigate('/drivers')} className="text-[13px] font-medium text-navy-600 hover:text-navy-800 transition">
+                   View All in Driver Management &rarr;
+                 </button>
+               </div>
+            </Card>
+
+            {/* Safety Score Chart */}
+            <Card title="Safety Score Overview">
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eef2f6" horizontal={false} />
+                    <XAxis type="number" hide domain={[0, 100]} />
+                    <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                    <Tooltip content={<ChartTooltip />} cursor={{ fill: '#f1f5f9' }} />
+                    <Bar dataKey="score" radius={[0, 4, 4, 0]} barSize={24}>
+                      {
+                        chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.group === 'Top Performers' ? '#10b981' : '#ef4444'} />
+                        ))
+                      }
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+
+            {/* Quick Actions */}
+            <Card title="Quick Actions">
+               <div className="flex gap-4">
+                 <button onClick={() => navigate('/drivers')} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-navy-700 shadow-sm transition hover:bg-slate-50">
+                    View Driver Management &rarr;
+                 </button>
+                 <button onClick={() => navigate('/reports?tab=compliance')} className="inline-flex items-center gap-1.5 rounded-lg bg-navy-800 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-navy-900">
+                    View Compliance Report &rarr;
+                 </button>
+               </div>
+            </Card>
+
+          </div>
+
+          {/* --- Right sidebar: activity feed --- */}
+          <Card title="Recent Compliance Activity" className="h-fit xl:sticky xl:top-24">
+             <p className="text-[11px] text-slate-400 mb-4 pb-2 border-b border-slate-100">Scoped to compliance/safety events only — excludes trip dispatch, fuel, and maintenance activity shown to other roles</p>
+            <ul className="space-y-1">
+              {!data?.activity || data.activity.length === 0 ? (
+                <li className="text-[12.5px] text-slate-500 py-2">No recent compliance activity.</li>
+              ) : (
+                data.activity.map((ev: any) => {
+                  let Icon = ShieldIcon;
+                  let cls = 'bg-slate-50 text-slate-600';
+                  if (ev.type === 'critical') { Icon = AlertIcon; cls = 'bg-red-50 text-red-600'; }
+                  if (ev.type === 'warning') { Icon = AlertIcon; cls = 'bg-amber-50 text-amber-600'; }
+                  if (ev.type === 'check') { Icon = ShieldIcon; cls = 'bg-teal-50 text-teal-600'; }
+                  
+                  return (
+                    <li key={ev.id} className="flex gap-3 rounded-lg p-2 transition hover:bg-slate-50">
+                      <span className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg ${cls}`}>
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[12.5px] leading-snug text-navy-800">{ev.text}</span>
+                        <span className="mt-0.5 block text-[11px] text-slate-400">{new Date(ev.time).toLocaleString()}</span>
+                      </span>
+                    </li>
+                  )
+                })
+              )}
+            </ul>
+          </Card>
+        </div>
+      </main>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const { user } = useAuth()
-  const role = (user?.role || 'DRIVER') as RoleId
+  const role = user?.role as RoleId
 
   const [vehicleType, setVehicleType] = useState('All Vehicle Types')
   const [status, setStatus] = useState('All Statuses')
@@ -349,6 +775,14 @@ export default function Dashboard() {
 
   if (role === 'DRIVER') {
     return <DriverDashboard user={user} />
+  }
+
+  if (role === 'FINANCIAL_ANALYST') {
+    return <FinancialAnalystDashboard user={user} />
+  }
+
+  if (role === 'SAFETY_OFFICER') {
+    return <SafetyOfficerDashboard user={user} />
   }
 
   if (role === 'UNASSIGNED') {

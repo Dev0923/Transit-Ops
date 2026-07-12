@@ -19,6 +19,7 @@ function roleMiddleware(entity, action) {
 
     const allowedRoles = entityPerms[action] || [];
     if (!allowedRoles.includes(req.user.role)) {
+      console.log(`[RBAC 403] User Role: ${req.user.role}, Entity: ${entity}, Action: ${action}, Allowed: ${allowedRoles}`);
       return res
         .status(403)
         .json({ error: "Forbidden. Insufficient permissions." });

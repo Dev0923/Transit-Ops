@@ -219,7 +219,7 @@ function SummaryCards({ users }: { users: User[] }) {
 export default function AdminUsers() {
   const [users, setUsers] = useState<User[]>([])
   const { user: currentUser } = useAuth()
-  const role = (currentUser?.role || 'DRIVER')
+  const role = currentUser?.role
 
   const fetchUsers = async () => {
     try {

@@ -333,7 +333,7 @@ function CloseModal({ record, onClose, onConfirm }: { record: MaintRecord; onClo
 
 export default function MaintenanceLog() {
   const { user } = useAuth()
-  const role = (user?.role || 'DRIVER') as RoleId
+  const role = user?.role as RoleId
   const canManage = role === 'ADMIN' || role === 'MANAGER'
   const showCost = role === 'ADMIN' || role === 'MANAGER' || role === 'FINANCIAL_ANALYST'
   const canViewHistory = role === 'ADMIN' || role === 'MANAGER' || role === 'FINANCIAL_ANALYST'

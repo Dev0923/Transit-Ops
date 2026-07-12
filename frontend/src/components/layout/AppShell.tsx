@@ -16,7 +16,7 @@ import { navFor, PAGE_TITLE, type NavItem, type Page } from './nav'
 
 export default function AppShell() {
   const { user, logout } = useAuth()
-  const role = user?.isApproved ? ((user?.role?.toUpperCase() as RoleId) || 'DRIVER') : 'UNASSIGNED'
+  const role = user?.isApproved ? user?.role?.toUpperCase() as RoleId : 'UNASSIGNED'
   const navigate = useNavigate()
   const location = useLocation()
 

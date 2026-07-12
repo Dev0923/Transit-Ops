@@ -13,6 +13,7 @@ const maintenanceRoutes = require("./routes/maintenanceRoutes");
 const fuelExpenseRoutes = require("./routes/fuelExpenseRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const userRoutes = require("./routes/userRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/fuel-expenses", fuelExpenseRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // ─── 404 fallback ───────────────────────────────────────
 app.use((_req, res) => {
