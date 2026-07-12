@@ -414,7 +414,7 @@ export default function MaintenanceLog() {
           type: r.service === 'Repair' ? 'REPAIR' : 'PREVENTIVE',
           description: r.description,
           cost: r.costInr,
-          startDate: r.date
+          startDate: new Date(r.date).toISOString()
         })
       }
       setPanel(null)

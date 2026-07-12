@@ -476,7 +476,7 @@ export default function FuelExpense() {
       const payload = {
         vehicleId: e.vehicleReg, // because form uses vehicleId as vehicleReg
         date: new Date(e.date).toISOString(),
-        liters: e.kind === 'Fuel' ? (e.liters || 0) : 0,
+        litres: e.kind === 'Fuel' ? (e.liters || 0) : 0,
         costPerLitre: e.kind === 'Fuel' && e.liters ? (e.costInr / e.liters) : 0,
         totalCost: e.costInr,
         odometer: 0,
