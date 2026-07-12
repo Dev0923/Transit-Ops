@@ -137,6 +137,7 @@ model FuelExpense {
   totalCost   Float
   odometer    Float
   fuelStation String?
+  proofImage  String?  // Base64 encoded image
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

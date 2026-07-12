@@ -128,7 +128,7 @@ function SummaryCards({ fuel, expense, vehicleCount, scoped }: { fuel: number; e
 
 /* ---------- log entry panel ---------- */
 
-type FormState = { kind: EntryKind; vehicleReg: string; date: string; liters: string; expenseType: ExpenseType; description: string; costInr: string }
+type FormState = { kind: EntryKind; vehicleReg: string; date: string; liters: string; expenseType: ExpenseType; description: string; costInr: string; proofImage: string }
 
 function EntryPanel({ dbVehicles, editing, entries, vehicleOptions, autoVehicle, onCancel, onSave }: any) {
   const [form, setForm] = useState<FormState>(
@@ -141,8 +141,9 @@ function EntryPanel({ dbVehicles, editing, entries, vehicleOptions, autoVehicle,
           expenseType: (editing.kind === 'Expense' ? (editing.type as ExpenseType) : 'Toll'),
           description: editing.description ?? '',
           costInr: String(editing.costInr),
+          proofImage: editing.proofImage ?? '',
         }
-      : { kind: 'Fuel', vehicleReg: autoVehicle ?? '', date: new Date().toISOString().slice(0, 10), liters: '', expenseType: 'Toll', description: '', costInr: '' },
+      : { kind: 'Fuel', vehicleReg: autoVehicle ?? '', date: new Date().toISOString().slice(0, 10), liters: '', expenseType: 'Toll', description: '', costInr: '', proofImage: '' },
   )
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const set = (k: keyof FormState, v: string) => setForm((f) => ({ ...f, [k]: v }))
@@ -158,11 +159,12 @@ function EntryPanel({ dbVehicles, editing, entries, vehicleOptions, autoVehicle,
     if (!isFuel && !form.description.trim()) e.description = 'A description is required.'
     if (form.costInr === '') e.costInr = 'Cost is required.'
     else if (Number(form.costInr) <= 0) e.costInr = 'Cost must be greater than zero.'
+    if (!form.proofImage) e.proofImage = 'Proof image is required.'
     return e
   }, [form, isFuel])
 
   function save() {
-    setTouched({ vehicleReg: true, date: true, liters: true, description: true, costInr: true })
+    setTouched({ vehicleReg: true, date: true, liters: true, description: true, costInr: true, proofImage: true })
     if (Object.keys(errors).length > 0) return
     const type: EntryType = isFuel ? 'Fuel' : form.expenseType
     onSave({
@@ -176,6 +178,7 @@ function EntryPanel({ dbVehicles, editing, entries, vehicleOptions, autoVehicle,
       costInr: Number(form.costInr),
       loggedBy: editing ? editing.loggedBy : SELF_USER,
       ownedBySelf: editing ? editing.ownedBySelf : true,
+      proofImage: form.proofImage,
     })
   }
 
@@ -265,6 +268,24 @@ function EntryPanel({ dbVehicles, editing, entries, vehicleOptions, autoVehicle,
             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-medium text-slate-400">₹</span>
             <input type="number" className={`${inputCls(!!err('costInr'))} pl-7`} placeholder="0" value={form.costInr} onChange={(e) => set('costInr', e.target.value)} onBlur={() => setTouched((t) => ({ ...t, costInr: true }))} />
           </div>
+        </FormField>
+
+        <FormField label="Proof Image" error={err('proofImage')}>
+          <input type="file" accept="image/*" onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) {
+              const reader = new FileReader()
+              reader.onloadend = () => set('proofImage', reader.result as string)
+              reader.readAsDataURL(file)
+            } else {
+              set('proofImage', '')
+            }
+          }} className="w-full text-[13px] text-slate-500 file:mr-4 file:rounded-lg file:border-0 file:bg-teal-50 file:px-4 file:py-2 file:text-[13px] file:font-semibold file:text-teal-700 hover:file:bg-teal-100" />
+          {form.proofImage && (
+            <div className="mt-2 h-20 w-20 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+              <img src={form.proofImage} alt="Proof" className="h-full w-full object-cover" />
+            </div>
+          )}
         </FormField>
       </div>
 
@@ -393,7 +414,8 @@ export default function FuelExpense() {
         costInr: f.totalCost,
         loggedBy: 'Admin',
         ownedBySelf: true,
-        vehicleId: f.vehicleId
+        vehicleId: f.vehicleId,
+        proofImage: f.proofImage
       })))
     } catch (err) {
       console.error(err)
@@ -458,7 +480,8 @@ export default function FuelExpense() {
         costPerLitre: e.kind === 'Fuel' && e.liters ? (e.costInr / e.liters) : 0,
         totalCost: e.costInr,
         odometer: 0,
-        fuelStation: e.kind === 'Fuel' ? 'Fuel Station' : e.type
+        fuelStation: e.kind === 'Fuel' ? 'Fuel Station' : e.type,
+        proofImage: e.proofImage || null
       }
       if (panel?.mode === 'edit') {
         await fuelExpenseService.update(e.id, payload)
@@ -613,6 +636,16 @@ export default function FuelExpense() {
                       {showLoggedBy && <td className="px-4 py-3 text-slate-600">{e.loggedBy}</td>}
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
+                          {e.proofImage && (
+                            <button onClick={() => {
+                              const w = window.open('', '_blank')
+                              if (w) w.document.write(`<title>Receipt</title><img src="${e.proofImage}" style="max-width: 100%; height: auto;" />`)
+                            }} title="View Receipt" className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-teal-50 hover:text-teal-600">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-4 w-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                              </svg>
+                            </button>
+                          )}
                           {canEditEntry(e) && (
                             <button onClick={() => setPanel({ mode: 'edit', entry: e })} title="Edit entry" className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-navy-800">
                               <EditIcon className="h-4 w-4" />

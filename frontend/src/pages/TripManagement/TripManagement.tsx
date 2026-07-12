@@ -407,7 +407,7 @@ export default function TripManagement() {
         distanceKm: t.distance || 0,
         status: t.status === 'SCHEDULED' ? 'Draft' : t.status === 'IN_PROGRESS' ? 'Dispatched' : t.status === 'COMPLETED' ? 'Completed' : 'Cancelled',
         date: t.scheduledDate.substring(0,10),
-        ownedBySelf: t.driverId === user?.id
+        ownedBySelf: (t.driver?.id || t.driverId) === user?.id
       })))
     } catch (err) {
       console.error(err)
@@ -421,7 +421,6 @@ export default function TripManagement() {
   const [statusFilter, setStatusFilter] = useState('All')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
-  const [myOnly, setMyOnly] = useState(isDriver)
   const [page, setPage] = useState(1)
   const [panelOpen, setPanelOpen] = useState(false)
   const [completing, setCompleting] = useState<Trip | null>(null)
@@ -430,7 +429,7 @@ export default function TripManagement() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return trips
-      .filter((t) => (myOnly ? t.ownedBySelf : true))
+      .filter((t) => (isDriver ? t.ownedBySelf : true))
       .filter((t) =>
         q ? [t.id, t.source, t.destination, t.driverName, t.vehicleReg].some((f) => f.toLowerCase().includes(q)) : true,
       )
@@ -438,7 +437,7 @@ export default function TripManagement() {
       .filter((t) => (fromDate ? t.date >= fromDate : true))
       .filter((t) => (toDate ? t.date <= toDate : true))
       .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id))
-  }, [trips, query, statusFilter, fromDate, toDate, myOnly])
+  }, [trips, query, statusFilter, fromDate, toDate, isDriver])
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const current = Math.min(page, pageCount)
@@ -517,12 +516,6 @@ export default function TripManagement() {
                 <input type="date" value={toDate} onChange={(e) => { setToDate(e.target.value); resetPage() }} className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-[13px] text-navy-900 outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-500/15 sm:w-36" />
               </label>
             </div>
-            {isDriver && (
-              <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <input type="checkbox" checked={myOnly} onChange={(e) => { setMyOnly(e.target.checked); resetPage() }} className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-600" />
-                <span className="text-[12.5px] font-medium text-navy-800">My Trips Only</span>
-              </label>
-            )}
           </div>
 
           {filtered.length === 0 ? (

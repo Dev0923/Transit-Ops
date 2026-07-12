@@ -33,17 +33,33 @@ export default function AppRoutes() {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
-        <Route path="vehicles" element={<VehicleRegistry />} />
+        <Route path="vehicles" element={
+          <ProtectedRoute roles={["ADMIN", "MANAGER", "DRIVER", "SAFETY_OFFICER", "FINANCIAL_ANALYST"]}>
+            <VehicleRegistry />
+          </ProtectedRoute>
+        } />
         <Route path="drivers" element={
-          <ProtectedRoute roles={["ADMIN", "MANAGER"]}>
+          <ProtectedRoute roles={["ADMIN", "MANAGER", "DRIVER", "SAFETY_OFFICER"]}>
             <DriverManagement />
           </ProtectedRoute>
         } />
-        <Route path="trips" element={<TripManagement />} />
-        <Route path="maintenance" element={<MaintenanceLog />} />
-        <Route path="fuel-expenses" element={<FuelExpense />} />
+        <Route path="trips" element={
+          <ProtectedRoute roles={["ADMIN", "MANAGER", "DRIVER", "SAFETY_OFFICER"]}>
+            <TripManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="maintenance" element={
+          <ProtectedRoute roles={["ADMIN", "MANAGER", "DRIVER", "FINANCIAL_ANALYST"]}>
+            <MaintenanceLog />
+          </ProtectedRoute>
+        } />
+        <Route path="fuel-expenses" element={
+          <ProtectedRoute roles={["ADMIN", "MANAGER", "DRIVER", "FINANCIAL_ANALYST"]}>
+            <FuelExpense />
+          </ProtectedRoute>
+        } />
         <Route path="reports" element={
-          <ProtectedRoute roles={["ADMIN", "MANAGER"]}>
+          <ProtectedRoute roles={["ADMIN", "MANAGER", "SAFETY_OFFICER", "FINANCIAL_ANALYST"]}>
             <Reports />
           </ProtectedRoute>
         } />

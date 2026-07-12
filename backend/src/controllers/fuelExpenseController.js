@@ -40,9 +40,13 @@ async function getById(req, res, next) {
 // POST /api/fuel-expenses
 async function create(req, res, next) {
   try {
+    if (!req.body.proofImage) {
+      return res.status(400).json({ error: "Proof image is required." });
+    }
     const data = {
       ...req.body,
       totalCost: req.body.totalCost || req.body.litres * req.body.costPerLitre,
+      proofImage: req.body.proofImage || null,
       userId: req.user.id // Track the creator
     };
     const expense = await prisma.fuelExpense.create({ data });
@@ -71,7 +75,13 @@ async function update(req, res, next) {
       return res.status(403).json({ error: "Forbidden. Can only edit own fuel logs." });
     }
 
+    if (req.body.proofImage === null || req.body.proofImage === "") {
+      return res.status(400).json({ error: "Proof image is required." });
+    }
+
     const data = { ...req.body };
+    // ensure we don't accidentally wipe it
+    if (data.proofImage === undefined) delete data.proofImage;
     if (req.user.role === "DRIVER") {
       delete data.userId;
     }

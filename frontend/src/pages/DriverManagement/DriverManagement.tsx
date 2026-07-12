@@ -194,24 +194,26 @@ function DriverForm({
             {reduced ? 'Update your personal & license details.' : editing ? `Updating ${editing.name}` : 'Add a new driver profile.'}
           </p>
         </div>
-        <button type="button" onClick={onCancel} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-navy-800">
-          <XIcon className="h-5 w-5" />
-        </button>
+        {onCancel && (
+          <button type="button" onClick={onCancel} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-navy-800">
+            <XIcon className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto p-5">
         <FormField label="Name" error={err('name')}>
-          <input className={inputCls(!!err('name'))} placeholder="Enter driver's full name" value={form.name} onChange={(e) => set('name', e.target.value)} onBlur={() => setTouched((t) => ({ ...t, name: true }))} />
+          <input readOnly={reduced} className={`${inputCls(!!err('name'))} ${reduced ? 'cursor-not-allowed bg-slate-50 text-slate-500' : ''}`} placeholder="Enter driver's full name" value={form.name} onChange={(e) => set('name', e.target.value)} onBlur={() => setTouched((t) => ({ ...t, name: true }))} />
         </FormField>
 
         <FormField label="License Number" error={err('license')}>
-          <input className={inputCls(!!err('license'))} placeholder="e.g., DL-0420110149646" value={form.license} onChange={(e) => set('license', e.target.value)} onBlur={() => setTouched((t) => ({ ...t, license: true }))} />
+          <input readOnly={reduced} className={`${inputCls(!!err('license'))} ${reduced ? 'cursor-not-allowed bg-slate-50 text-slate-500' : ''}`} placeholder="e.g., DL-0420110149646" value={form.license} onChange={(e) => set('license', e.target.value)} onBlur={() => setTouched((t) => ({ ...t, license: true }))} />
         </FormField>
 
         <div className="grid grid-cols-2 gap-4">
           <FormField label="License Category">
             <div className="relative">
-              <select value={form.category} onChange={(e) => set('category', e.target.value)} className="h-11 w-full appearance-none rounded-lg border border-slate-300 bg-white px-3.5 pr-9 text-[14px] text-navy-950 outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-500/15">
+              <select disabled={reduced} value={form.category} onChange={(e) => set('category', e.target.value)} className={`h-11 w-full appearance-none rounded-lg border border-slate-300 px-3.5 pr-9 text-[14px] outline-none transition ${reduced ? 'cursor-not-allowed bg-slate-50 text-slate-500' : 'bg-white text-navy-950 hover:border-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-500/15'}`}>
                 {LICENSE_CATEGORIES.map((c) => (
                   <option key={c}>{c}</option>
                 ))}
@@ -221,7 +223,7 @@ function DriverForm({
           </FormField>
 
           <FormField label="License Expiry" error={err('expiry')} hint={expiryWarn ? '⚠ Date is in the past.' : undefined}>
-            <input type="date" className={inputCls(!!err('expiry'))} value={form.expiry} onChange={(e) => set('expiry', e.target.value)} onBlur={() => setTouched((t) => ({ ...t, expiry: true }))} />
+            <input readOnly={reduced} type="date" className={`${inputCls(!!err('expiry'))} ${reduced ? 'cursor-not-allowed bg-slate-50 text-slate-500' : ''}`} value={form.expiry} onChange={(e) => set('expiry', e.target.value)} onBlur={() => setTouched((t) => ({ ...t, expiry: true }))} />
           </FormField>
         </div>
 
@@ -256,11 +258,13 @@ function DriverForm({
       </div>
 
       <div className="flex gap-3 border-t border-slate-100 p-5">
-        <button type="button" onClick={onCancel} className="h-11 flex-1 rounded-lg border border-slate-300 bg-white text-[14px] font-semibold text-navy-800 transition hover:bg-slate-50">
-          Cancel
-        </button>
+        {onCancel && (
+          <button type="button" onClick={onCancel} className="h-11 flex-1 rounded-lg border border-slate-300 bg-white text-[14px] font-semibold text-navy-800 transition hover:bg-slate-50">
+            Cancel
+          </button>
+        )}
         <button type="submit" className="h-11 flex-1 rounded-lg bg-teal-600 text-[14px] font-semibold text-white shadow-lg shadow-teal-600/25 transition hover:bg-teal-700 focus-visible:ring-4 focus-visible:ring-teal-500/30">
-          Save Driver
+          {editing ? 'Save Changes' : 'Register Driver'}
         </button>
       </div>
     </form>
@@ -439,6 +443,36 @@ export default function DriverManagement() {
   }
 
   const canEditRow = (d: Driver) => role === 'ADMIN' || role === 'MANAGER' || (isDriver && d.self)
+
+  if (isDriver && rows.length > 0) {
+    const me = rows[0]
+    return (
+      <div className="font-sans text-navy-950">
+        <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
+            <EditModal
+              existing={drivers}
+              editing={me}
+              reduced={true}
+              onSave={async (d: Driver) => {
+                try {
+                  await driverService.update(d.id, {
+                    name: d.name,
+                    phone: d.contact,
+                  })
+                  fetchDrivers()
+                  alert('Profile updated successfully.')
+                } catch (err: any) {
+                  console.error(err)
+                  alert('Failed to update profile. ' + (err.response?.data?.error || ''))
+                }
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="font-sans text-navy-950">

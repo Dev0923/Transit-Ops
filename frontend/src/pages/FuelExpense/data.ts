@@ -13,6 +13,7 @@ export type Entry = {
   costInr: number
   loggedBy: string
   ownedBySelf?: boolean // logged by the current driver
+  proofImage?: string // base64 image data
 }
 
 export const EXPENSE_TYPES: ExpenseType[] = ['Toll', 'Parking', 'Fine', 'Other']
