@@ -104,7 +104,9 @@ async function remove(req, res, next) {
 // POST /api/drivers/onboard
 async function onboard(req, res, next) {
   try {
-    if (req.user.role !== "DRIVER") {
+    // Fetch current role from DB (JWT may be stale after admin role change)
+    const currentUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { role: true } });
+    if (!currentUser || currentUser.role !== "DRIVER") {
       return res.status(403).json({ error: "Only drivers can onboard." });
     }
     const { licenseNumber, licenseCategory, licenseExpiry, photoData } = req.body;
