@@ -5,7 +5,10 @@ async function getAll(req, res, next) {
   try {
     const where = {};
     if (req.user.role === "DRIVER") {
-      where.driverId = req.user.id;
+      where.OR = [
+        { driverId: req.user.id },
+        { driverId: null, status: "DRAFT" }
+      ];
     }
     const trips = await prisma.trip.findMany({
       where,
@@ -78,13 +81,21 @@ async function update(req, res, next) {
     if (!existing) return res.status(404).json({ error: "Trip not found." });
 
     if (req.user.role === "DRIVER" && existing.driverId !== req.user.id) {
-      return res.status(403).json({ error: "Forbidden. Can only update own trips." });
+      if (existing.driverId === null && existing.status === "DRAFT" && req.body.driverId === req.user.id) {
+        // Driver is accepting an open trip
+      } else {
+        return res.status(403).json({ error: "Forbidden. Can only update own trips." });
+      }
     }
 
     const data = req.body;
     if (req.user.role === "DRIVER") {
-      // Drivers cannot change the assigned driver
-      delete data.driverId;
+      if (existing.driverId === null && existing.status === "DRAFT" && data.driverId === req.user.id) {
+        // Driver is accepting an open trip, allow setting driverId and status
+      } else {
+        // Drivers cannot change the assigned driver of an already assigned trip
+        delete data.driverId;
+      }
     }
 
     const trip = await prisma.trip.update({

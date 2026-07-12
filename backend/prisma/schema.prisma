@@ -28,6 +28,7 @@ enum VehicleStatus {
 }
 
 enum TripStatus {
+  DRAFT
   SCHEDULED
   IN_PROGRESS
   COMPLETED
@@ -89,21 +90,22 @@ model Vehicle {
 model Trip {
   id            String     @id @default(uuid())
   vehicleId     String
-  driverId      String
+  driverId      String?
   origin        String
   destination   String
   distance      Float?
+  cargoWeight   Float?
   scheduledDate DateTime
   startTime     DateTime?
   endTime       DateTime?
-  status        TripStatus @default(SCHEDULED)
+  status        TripStatus @default(DRAFT)
   notes         String?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
   // Relations
-  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
-  driver  User    @relation("DriverTrips", fields: [driverId], references: [id])
+  vehicle       Vehicle    @relation(fields: [vehicleId], references: [id])
+  driver        User?      @relation("DriverTrips", fields: [driverId], references: [id])
 
   @@map("trips")
 }
