@@ -791,9 +791,9 @@ function AdminManagerDashboard({ user }: { user: any }) {
     { key: 'pending_trips', label: 'Pending Trips', value: data?.pendingTrips?.toLocaleString('en-IN') || '0', trend: -2.3, trendGood: false, icon: ClockIcon, roles: ['ADMIN', 'MANAGER', 'DRIVER'], accent: 'amber' as const },
     { key: 'drivers_on_duty', label: 'Drivers On Duty', value: data?.driversOnDuty?.toLocaleString('en-IN') || '0', trend: 2.0, icon: UsersIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' as const },
     { key: 'utilization', label: 'Fleet Utilization', value: `${data?.fleetUtilization || 0}%`, trend: 5.2, icon: GaugeIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' as const },
-    { key: 'fuel_cost', label: 'Monthly Fuel Cost', value: `$${((data?.fuelCost || 0) / 1000).toFixed(1)}K`, trend: -4.1, trendGood: false, icon: FuelIcon, roles: ['ADMIN', 'MANAGER'], accent: 'navy' as const },
-    { key: 'maint_spend', label: 'Maintenance Spend', value: `$${((data?.maintCost || 0) / 1000).toFixed(1)}K`, trend: 2.7, trendGood: false, icon: WrenchIcon, roles: ['ADMIN', 'MANAGER'], accent: 'amber' as const },
-    { key: 'cost_per_km', label: 'Cost per Km', value: `$${data?.costPerKm || 0}`, trend: -1.8, icon: CoinIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' as const },
+    { key: 'fuel_cost', label: 'Monthly Fuel Cost', value: `₹${((data?.fuelCost || 0) / 1000).toFixed(1)}K`, trend: -4.1, trendGood: false, icon: FuelIcon, roles: ['ADMIN', 'MANAGER'], accent: 'navy' as const },
+    { key: 'maint_spend', label: 'Maintenance Spend', value: `₹${((data?.maintCost || 0) / 1000).toFixed(1)}K`, trend: 2.7, trendGood: false, icon: WrenchIcon, roles: ['ADMIN', 'MANAGER'], accent: 'amber' as const },
+    { key: 'cost_per_km', label: 'Cost per Km', value: `₹${data?.costPerKm || 0}`, trend: -1.8, icon: CoinIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' as const },
   ].filter(k => k.roles.includes(role))
 
   return (

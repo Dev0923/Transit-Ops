@@ -58,9 +58,9 @@ export const KPIS: Kpi[] = [
   { key: 'drivers_on_duty', label: 'Drivers On Duty', value: '486', trend: 2.0, icon: UsersIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' },
   { key: 'utilization', label: 'Fleet Utilization', value: '78.4%', trend: 5.2, icon: GaugeIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' },
   // financial-only cost KPIs
-  { key: 'fuel_cost', label: 'Monthly Fuel Cost', value: '$248.6K', trend: -4.1, trendGood: false, icon: FuelIcon, roles: ['ADMIN', 'MANAGER'], accent: 'navy' },
-  { key: 'maint_spend', label: 'Maintenance Spend', value: '$91.2K', trend: 2.7, trendGood: false, icon: WrenchIcon, roles: ['ADMIN', 'MANAGER'], accent: 'amber' },
-  { key: 'cost_per_km', label: 'Cost per Km', value: '$0.42', trend: -1.8, icon: CoinIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' },
+  { key: 'fuel_cost', label: 'Monthly Fuel Cost', value: '₹248.6K', trend: -4.1, trendGood: false, icon: FuelIcon, roles: ['ADMIN', 'MANAGER'], accent: 'navy' },
+  { key: 'maint_spend', label: 'Maintenance Spend', value: '₹91.2K', trend: 2.7, trendGood: false, icon: WrenchIcon, roles: ['ADMIN', 'MANAGER'], accent: 'amber' },
+  { key: 'cost_per_km', label: 'Cost per Km', value: '₹0.42', trend: -1.8, icon: CoinIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' },
 ]
 
 // 30-day utilization trend
@@ -130,7 +130,7 @@ export const activity: Activity[] = [
   { id: 'a2', type: 'shop', text: 'Van-05 marked In Shop for brake service', time: '48 min ago' },
   { id: 'a3', type: 'license', text: 'Driver Jonas Berg — license expiring in 4 days', time: '2 hours ago' },
   { id: 'a4', type: 'driver', text: 'Lena Osei clocked on duty (Depot North)', time: '3 hours ago' },
-  { id: 'a5', type: 'fuel', text: 'Fuel expense logged for Truck-118 — $214', time: '5 hours ago' },
+  { id: 'a5', type: 'fuel', text: 'Fuel expense logged for Truck-118 — ₹214', time: '5 hours ago' },
   { id: 'a6', type: 'trip', text: 'Trip #1019 completed — 342 km, on time', time: '6 hours ago' },
   { id: 'a7', type: 'shop', text: 'Truck-092 returned to service', time: '8 hours ago' },
 ]
