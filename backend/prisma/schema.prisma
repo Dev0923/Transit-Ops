@@ -1,0 +1,144 @@
+// Prisma schema for TransitOps Fleet Management
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  MANAGER
+  DRIVER
+  SAFETY_OFFICER
+  FINANCIAL_ANALYST
+  UNASSIGNED
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  ON_TRIP
+  IN_SHOP
+  RETIRED
+}
+
+enum TripStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum MaintenanceType {
+  PREVENTIVE
+  CORRECTIVE
+}
+
+// ─── Models ─────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(UNASSIGNED)
+  phone     String?
+  isActive  Boolean  @default(true)
+  isApproved Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tripsAsDriver Trip[] @relation("DriverTrips")
+
+  @@map("users")
+}
+
+model Vehicle {
+  id              String        @id @default(uuid())
+  registrationNo  String        @unique
+  make            String
+  model           String
+  year            Int
+  type            String        // Bus, Truck, Van, etc.
+  capacity        Int?
+  fuelType        String        @default("Diesel")
+  status          VehicleStatus @default(AVAILABLE)
+  currentMileage  Float         @default(0)
+  purchaseDate    DateTime?
+  purchaseCost    Float?
+  insuranceExpiry DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  trips           Trip[]
+  maintenanceLogs MaintenanceLog[]
+  fuelExpenses    FuelExpense[]
+
+  @@map("vehicles")
+}
+
+model Trip {
+  id            String     @id @default(uuid())
+  vehicleId     String
+  driverId      String
+  origin        String
+  destination   String
+  distance      Float?
+  scheduledDate DateTime
+  startTime     DateTime?
+  endTime       DateTime?
+  status        TripStatus @default(SCHEDULED)
+  notes         String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  // Relations
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  driver  User    @relation("DriverTrips", fields: [driverId], references: [id])
+
+  @@map("trips")
+}
+
+model MaintenanceLog {
+  id              String          @id @default(uuid())
+  vehicleId       String
+  type            MaintenanceType @default(PREVENTIVE)
+  description     String
+  cost            Float
+  serviceProvider String?
+  startDate       DateTime
+  endDate         DateTime?
+  mileageAtService Float?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@map("maintenance_logs")
+}
+
+model FuelExpense {
+  id          String   @id @default(uuid())
+  vehicleId   String
+  date        DateTime
+  litres      Float
+  costPerLitre Float
+  totalCost   Float
+  odometer    Float
+  fuelStation String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@map("fuel_expenses")
+}
