@@ -51,10 +51,11 @@ export default function Sidebar({ open, onClose }) {
       >
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-surface-700">
-          <span className="text-xl font-bold bg-gradient-to-r from-primary-400 to-primary-300 bg-clip-text text-transparent">
+          <img src="/logo.jpeg" alt="Logo" className="h-10 w-10 rounded-xl object-cover bg-white" />
+          <span className="text-xl font-bold bg-gradient-to-r from-primary-400 to-primary-300 bg-clip-text text-transparent ml-2">
             TransitOps
           </span>
-          <button onClick={onClose} className="lg:hidden text-surface-200 hover:text-white">
+          <button onClick={onClose} className="lg:hidden text-surface-200 hover:text-white ml-auto">
             <X size={20} />
           </button>
         </div>

@@ -139,11 +139,9 @@ function BrandPanel({ step }: { step: number }) {
       <div className="relative z-10 flex h-full flex-col justify-between p-8 lg:p-11">
         {/* Logo */}
         <div className="flex items-center gap-2.5">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-teal-500 text-navy-950 shadow-lg shadow-teal-500/20">
-            <TruckIcon className="h-6 w-6" />
-          </span>
+          <img src="/logo.jpeg" alt="Logo" className="h-10 w-10 rounded-xl object-cover bg-white" />
           <div className="leading-tight">
-            <p className="font-mono text-[15px] font-medium tracking-tight text-white">TransitOps</p>
+            <p className="font-mono text-[15px] font-bold tracking-tight text-white ml-2">TransitOps</p>
             <p className="text-[11px] text-navy-100/70">Smart Transport Operations</p>
           </div>
         </div>
@@ -275,11 +273,9 @@ export default function DriverOnboarding() {
         <div className="w-full max-w-[440px]">
           {/* mobile brand */}
           <div className="mb-6 flex items-center gap-2.5 md:hidden">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-navy-800 text-teal-400">
-              <TruckIcon className="h-6 w-6" />
-            </span>
+            <img src="/logo.jpeg" alt="Logo" className="h-10 w-10 rounded-xl object-cover bg-white" />
             <div className="leading-tight">
-              <p className="font-mono text-[15px] font-medium text-navy-900">TransitOps</p>
+              <p className="font-mono text-[15px] font-bold text-navy-900 ml-2">TransitOps</p>
               <p className="text-[11px] text-slate-500">Driver Onboarding</p>
             </div>
           </div>

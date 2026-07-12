@@ -136,11 +136,9 @@ function SidebarInner({
     <>
       {/* brand */}
       <div className={`flex h-16 items-center border-b border-white/10 ${collapsed ? 'justify-center px-0' : 'gap-2.5 px-4'}`}>
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-teal-500/15 text-teal-400">
-          <TruckIcon className="h-5 w-5" />
-        </span>
+        <img src="/logo.jpeg" alt="Logo" className={`${collapsed ? 'h-9 w-9 rounded-lg' : 'h-8 rounded'} object-contain bg-white`} />
         {!collapsed && (
-          <span className="font-mono text-[15px] font-medium tracking-tight text-white">TransitOps</span>
+          <span className="font-mono text-[15px] font-bold tracking-tight text-white ml-2">TransitOps</span>
         )}
         {onClose && (
           <button
