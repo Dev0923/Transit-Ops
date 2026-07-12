@@ -1,13 +1,33 @@
 const prisma = require("../config/db");
+const permissions = require("../config/permissions");
+
+// Helper to strip cost
+function stripCost(log, role) {
+  const canSeeCost = permissions.MAINTENANCE.READ_COST.includes(role);
+  if (!canSeeCost && log) {
+    delete log.cost;
+  }
+  return log;
+}
 
 // GET /api/maintenance
 async function getAll(req, res, next) {
   try {
+    let where = {};
+    if (req.user.role === "DRIVER") {
+      const trips = await prisma.trip.findMany({
+        where: { driverId: req.user.id },
+        select: { vehicleId: true },
+        distinct: ['vehicleId']
+      });
+      where.vehicleId = { in: trips.map(t => t.vehicleId) };
+    }
     const logs = await prisma.maintenanceLog.findMany({
+      where,
       include: { vehicle: { select: { registrationNo: true, make: true, model: true } } },
       orderBy: { startDate: "desc" },
     });
-    res.json(logs);
+    res.json(logs.map(log => stripCost(log, req.user.role)));
   } catch (err) {
     next(err);
   }
@@ -21,7 +41,13 @@ async function getById(req, res, next) {
       include: { vehicle: true },
     });
     if (!log) return res.status(404).json({ error: "Maintenance log not found." });
-    res.json(log);
+    
+    if (req.user.role === "DRIVER") {
+      const trip = await prisma.trip.findFirst({ where: { driverId: req.user.id, vehicleId: log.vehicleId } });
+      if (!trip) return res.status(403).json({ error: "Forbidden. Not assigned to this vehicle." });
+    }
+    
+    res.json(stripCost(log, req.user.role));
   } catch (err) {
     next(err);
   }

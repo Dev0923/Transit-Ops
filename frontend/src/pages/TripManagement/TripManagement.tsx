@@ -379,8 +379,8 @@ function ModalShell({ children, onClose }: { children: ReactNode; onClose: () =>
 export default function TripManagement() {
   const { user } = useAuth()
   const role = (user?.role || 'DRIVER') as RoleId
-  const isDriver = role === 'driver'
-  const canCreate = role === 'ADMIN' || role === 'MANAGER' || role === 'DRIVER'
+  const isDriver = role === 'DRIVER'
+  const canCreate = role === 'ADMIN' || role === 'MANAGER'
   const actsAllowed = (t: Trip) => role === 'ADMIN' || role === 'MANAGER' || (isDriver && t.ownedBySelf)
 
   const [trips, setTrips] = useState<Trip[]>([])
@@ -578,13 +578,13 @@ export default function TripManagement() {
                         <td className="px-4 py-4 pr-6 text-right align-top">
                           {actsAllowed(t) ? (
                             <div className="flex flex-col items-end gap-1.5">
-                              {t.status === 'Draft' && (
+                              {t.status === 'Draft' && (role === 'ADMIN' || role === 'MANAGER') && (
                                 <button onClick={() => setStatus(t.id, 'Dispatched')} disabled={blockers.length > 0} className="rounded px-2 py-1 text-[12px] font-semibold text-teal-600 transition hover:bg-teal-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent">Dispatch</button>
                               )}
                               {t.status === 'Dispatched' && (
                                 <button onClick={() => setCompleting(t)} className="rounded px-2 py-1 text-[12px] font-semibold text-navy-600 transition hover:bg-navy-50">Complete</button>
                               )}
-                              {(t.status === 'Draft' || t.status === 'Dispatched') && (
+                              {(t.status === 'Draft' || t.status === 'Dispatched') && (role === 'ADMIN' || role === 'MANAGER') && (
                                 <button onClick={() => setCancelling(t)} className="rounded px-2 py-1 text-[12px] font-semibold text-red-600 transition hover:bg-red-50">Cancel</button>
                               )}
                             </div>

@@ -151,6 +151,7 @@ function VehicleForm({
   existing: Vehicle[]
   onCancel: () => void
   onSave: (v: Vehicle) => void
+  canSeeCost: boolean
 }) {
   const [form, setForm] = useState<FormState>(
     editing
@@ -179,8 +180,10 @@ function VehicleForm({
     const nums: [keyof FormState, string][] = [
       ['capacityKg', 'Max load capacity'],
       ['odometerKm', 'Odometer'],
-      ['costInr', 'Acquisition cost'],
     ]
+    if (canSeeCost) {
+      nums.push(['costInr', 'Acquisition cost'])
+    }
     for (const [k, label] of nums) {
       const raw = form[k]
       if (raw === '') e[k] = `${label} is required.`
@@ -188,7 +191,7 @@ function VehicleForm({
       else if (Number(raw) < 0) e[k] = 'Value cannot be negative.'
     }
     return e
-  }, [form, existing, editing])
+  }, [form, existing, editing, canSeeCost])
 
   const valid = Object.keys(errors).length === 0
 
@@ -203,7 +206,7 @@ function VehicleForm({
       type: form.type,
       capacityKg: Number(form.capacityKg),
       odometerKm: Number(form.odometerKm),
-      costInr: Number(form.costInr),
+      costInr: Number(form.costInr) || 0,
       status: editing ? form.status : 'Available',
     })
   }
@@ -290,19 +293,21 @@ function VehicleForm({
           </FormField>
         </div>
 
-        <FormField label="Acquisition Cost" error={err('costInr')}>
-          <div className="relative">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-medium text-slate-400">₹</span>
-            <input
-              type="number"
-              className={`${inputCls(!!err('costInr'))} pl-8`}
-              placeholder="0"
-              value={form.costInr}
-              onChange={(e) => set('costInr', e.target.value)}
-              onBlur={() => setTouched((t) => ({ ...t, costInr: true }))}
-            />
-          </div>
-        </FormField>
+        {canSeeCost && (
+          <FormField label="Acquisition Cost" error={err('costInr')}>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-medium text-slate-400">₹</span>
+              <input
+                type="number"
+                className={`${inputCls(!!err('costInr'))} pl-8`}
+                placeholder="0"
+                value={form.costInr}
+                onChange={(e) => set('costInr', e.target.value)}
+                onBlur={() => setTouched((t) => ({ ...t, costInr: true }))}
+              />
+            </div>
+          </FormField>
+        )}
 
         <FormField
           label="Status"
@@ -353,9 +358,18 @@ function VehicleForm({
 
 /* ---------------- Detail panel ---------------- */
 
-function DetailPanel({ vehicle, onClose }: { vehicle: Vehicle; onClose: () => void }) {
+function DetailPanel({ vehicle, onClose, canSeeCost }: { vehicle: Vehicle; onClose: () => void; canSeeCost: boolean }) {
   const totalMaint = maintHistory.reduce((s, m) => s + m.cost, 0)
   const opsCost = vehicle.costInr + totalMaint
+
+  const details = [
+    ['Max Load', `${vehicle.capacityKg.toLocaleString('en-IN')} kg`],
+    ['Odometer', `${vehicle.odometerKm.toLocaleString('en-IN')} km`],
+  ]
+  if (canSeeCost) {
+    details.push(['Acquisition Cost', inr(vehicle.costInr)])
+    details.push(['Total Ops Cost', inr(opsCost)])
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -376,12 +390,7 @@ function DetailPanel({ vehicle, onClose }: { vehicle: Vehicle; onClose: () => vo
 
       <div className="flex-1 space-y-6 overflow-y-auto p-5">
         <div className="grid grid-cols-2 gap-3">
-          {[
-            ['Max Load', `${vehicle.capacityKg.toLocaleString('en-IN')} kg`],
-            ['Odometer', `${vehicle.odometerKm.toLocaleString('en-IN')} km`],
-            ['Acquisition Cost', inr(vehicle.costInr)],
-            ['Total Ops Cost', inr(opsCost)],
-          ].map(([k, v]) => (
+          {details.map(([k, v]) => (
             <div key={k} className="rounded-lg bg-navy-50/60 p-3">
               <p className="text-[11px] text-slate-500">{k}</p>
               <p className="mt-1 text-[15px] font-bold text-navy-900">{v}</p>
@@ -431,6 +440,7 @@ export default function VehicleRegistry() {
   const { user } = useAuth()
   const role = (user?.role || 'DRIVER') as RoleId
   const canEdit = role === 'ADMIN' || role === 'MANAGER'
+  const canSeeCost = role === 'ADMIN' || role === 'MANAGER' || role === 'FINANCIAL_ANALYST'
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
 
   const fetchVehicles = async () => {
@@ -443,7 +453,7 @@ export default function VehicleRegistry() {
         type: 'Truck', // Mock fallback
         capacityKg: 5000, // Mock fallback
         odometerKm: 12500, // Mock fallback
-        costInr: 1500000, // Mock fallback
+        costInr: v.purchaseCost || 0, // Fallback if hidden
         status: v.status === 'AVAILABLE' ? 'Available' : v.status === 'ON_TRIP' ? 'On Trip' : 'In Shop'
       })))
     } catch (err) {
@@ -606,9 +616,11 @@ export default function VehicleRegistry() {
                     <th className="px-4 py-3">Type</th>
                     <th className="px-4 py-3 text-right">Max Load</th>
                     <th className="px-4 py-3 text-right">Odometer</th>
-                    <th className={`px-4 py-3 text-right ${showFinancialHint ? 'text-navy-700' : ''}`}>
-                      Acquisition Cost
-                    </th>
+                    {canSeeCost && (
+                      <th className={`px-4 py-3 text-right ${showFinancialHint ? 'text-navy-700' : ''}`}>
+                        Acquisition Cost
+                      </th>
+                    )}
                     <th className="px-4 py-3">Status</th>
                     {canEdit && <th className="sticky right-0 z-10 bg-slate-50 px-4 py-3 text-right">Actions</th>}
                   </tr>
@@ -633,13 +645,15 @@ export default function VehicleRegistry() {
                       <td className="px-4 py-3 text-right tabular-nums text-slate-600">
                         {v.odometerKm.toLocaleString('en-IN')} km
                       </td>
-                      <td
-                        className={`px-4 py-3 text-right tabular-nums ${
-                          showFinancialHint ? 'font-semibold text-navy-900' : 'text-slate-700'
-                        }`}
-                      >
-                        {inr(v.costInr)}
-                      </td>
+                      {canSeeCost && (
+                        <td
+                          className={`px-4 py-3 text-right tabular-nums ${
+                            showFinancialHint ? 'font-semibold text-navy-900' : 'text-slate-700'
+                          }`}
+                        >
+                          {inr(v.costInr)}
+                        </td>
+                      )}
                       <td className="px-4 py-3">
                         <StatusPill status={v.status} />
                       </td>
@@ -712,13 +726,14 @@ export default function VehicleRegistry() {
           <div className="animate-overlay-in absolute inset-0 bg-navy-950/40 backdrop-blur-[1px]" onClick={() => setPanel(null)} />
           <div className="animate-panel-in absolute right-0 top-0 flex h-full w-full max-w-[460px] flex-col bg-white shadow-2xl">
             {panel.mode === 'detail' ? (
-              <DetailPanel vehicle={panel.vehicle} onClose={() => setPanel(null)} />
+              <DetailPanel vehicle={panel.vehicle} onClose={() => setPanel(null)} canSeeCost={canSeeCost} />
             ) : (
               <VehicleForm
                 editing={panel.mode === 'edit' ? panel.vehicle : undefined}
                 existing={vehicles}
                 onCancel={() => setPanel(null)}
                 onSave={saveVehicle}
+                canSeeCost={canSeeCost}
               />
             )}
           </div>

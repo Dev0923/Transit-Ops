@@ -4,11 +4,10 @@ const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
 router.use(authMiddleware);
-router.use(roleMiddleware("ADMIN", "MANAGER"));
 
-router.get("/summary", ctrl.getSummary);
-router.get("/fleet-utilization", ctrl.getFleetUtilization);
-router.get("/fuel-efficiency", ctrl.getFuelEfficiency);
-router.get("/export/:type", ctrl.exportCSV);
+router.get("/summary", roleMiddleware("REPORTS", "FINANCIAL"), ctrl.getSummary);
+router.get("/fleet-utilization", roleMiddleware("REPORTS", "FINANCIAL"), ctrl.getFleetUtilization);
+router.get("/fuel-efficiency", roleMiddleware("REPORTS", "FINANCIAL"), ctrl.getFuelEfficiency);
+router.get("/export/:type", roleMiddleware("REPORTS", "EXPORT"), ctrl.exportCSV);
 
 module.exports = router;

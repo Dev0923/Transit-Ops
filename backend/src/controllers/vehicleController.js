@@ -1,4 +1,14 @@
 const prisma = require("../config/db");
+const permissions = require("../config/permissions");
+
+// Helper to strip cost
+function stripCost(vehicle, role) {
+  const canSeeCost = permissions.VEHICLES.READ_COST.includes(role);
+  if (!canSeeCost && vehicle) {
+    delete vehicle.purchaseCost;
+  }
+  return vehicle;
+}
 
 // GET /api/vehicles
 async function getAll(req, res, next) {
@@ -6,7 +16,7 @@ async function getAll(req, res, next) {
     const vehicles = await prisma.vehicle.findMany({
       orderBy: { createdAt: "desc" },
     });
-    res.json(vehicles);
+    res.json(vehicles.map((v) => stripCost(v, req.user.role)));
   } catch (err) {
     next(err);
   }
@@ -20,7 +30,7 @@ async function getById(req, res, next) {
       include: { trips: true, maintenanceLogs: true, fuelExpenses: true },
     });
     if (!vehicle) return res.status(404).json({ error: "Vehicle not found." });
-    res.json(vehicle);
+    res.json(stripCost(vehicle, req.user.role));
   } catch (err) {
     next(err);
   }

@@ -363,12 +363,12 @@ function CostSummaryPanel({ dbVehicles, maintRecords, vehicleReg, entries, onClo
 export default function FuelExpense() {
   const { user } = useAuth()
   const role = (user?.role || 'DRIVER') as RoleId
-  const isDriver = role === 'driver'
+  const isDriver = role === 'DRIVER'
   const canLog = role === 'ADMIN' || role === 'MANAGER' || isDriver
   const canDelete = role === 'ADMIN' || role === 'MANAGER'
-  const showLoggedBy = role === 'ADMIN' || role === 'MANAGER'
-  const canViewSummary = role === 'ADMIN' || role === 'MANAGER'
-  const canExport = role === 'ADMIN' || role === 'MANAGER'
+  const showLoggedBy = role === 'ADMIN' || role === 'MANAGER' || role === 'FINANCIAL_ANALYST'
+  const canViewSummary = role === 'ADMIN' || role === 'MANAGER' || role === 'FINANCIAL_ANALYST'
+  const canExport = role === 'ADMIN' || role === 'MANAGER' || role === 'FINANCIAL_ANALYST'
 
   const [entries, setEntries] = useState<Entry[]>([])
   const [dbVehicles, setDbVehicles] = useState<any[]>([])

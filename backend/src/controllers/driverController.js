@@ -4,8 +4,12 @@ const { hashPassword } = require("../utils/bcrypt");
 // GET /api/drivers
 async function getAll(req, res, next) {
   try {
+    const where = { role: "DRIVER" };
+    if (req.user.role === "DRIVER") {
+      where.id = req.user.id;
+    }
     const drivers = await prisma.user.findMany({
-      where: { role: "DRIVER" },
+      where,
       select: { id: true, name: true, email: true, phone: true, isActive: true, createdAt: true },
       orderBy: { createdAt: "desc" },
     });
@@ -18,6 +22,9 @@ async function getAll(req, res, next) {
 // GET /api/drivers/:id
 async function getById(req, res, next) {
   try {
+    if (req.user.role === "DRIVER" && req.user.id !== req.params.id) {
+      return res.status(403).json({ error: "Forbidden. Can only view own profile." });
+    }
     const driver = await prisma.user.findUnique({
       where: { id: req.params.id },
       include: { tripsAsDriver: { orderBy: { scheduledDate: "desc" }, take: 10 } },
@@ -35,6 +42,9 @@ async function getById(req, res, next) {
 // POST /api/drivers
 async function create(req, res, next) {
   try {
+    if (req.user.role === "DRIVER") {
+      return res.status(403).json({ error: "Forbidden. Drivers cannot create drivers." });
+    }
     const { name, email, password, phone } = req.body;
     const hashed = await hashPassword(password);
     const driver = await prisma.user.create({
@@ -53,7 +63,17 @@ async function create(req, res, next) {
 // PUT /api/drivers/:id
 async function update(req, res, next) {
   try {
+    if (req.user.role === "DRIVER" && req.user.id !== req.params.id) {
+      return res.status(403).json({ error: "Forbidden. Can only edit own profile." });
+    }
     const data = { ...req.body };
+    // Prevent drivers from changing their role, active status, or approval status
+    if (req.user.role === "DRIVER") {
+      delete data.role;
+      delete data.isActive;
+      delete data.isApproved;
+    }
+    
     if (data.password) {
       data.password = await hashPassword(data.password);
     }
@@ -71,6 +91,9 @@ async function update(req, res, next) {
 // DELETE /api/drivers/:id
 async function remove(req, res, next) {
   try {
+    if (req.user.role === "DRIVER") {
+      return res.status(403).json({ error: "Forbidden." });
+    }
     await prisma.user.delete({ where: { id: req.params.id } });
     res.json({ message: "Driver deleted." });
   } catch (err) {

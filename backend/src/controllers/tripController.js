@@ -3,7 +3,12 @@ const prisma = require("../config/db");
 // GET /api/trips
 async function getAll(req, res, next) {
   try {
+    const where = {};
+    if (req.user.role === "DRIVER") {
+      where.driverId = req.user.id;
+    }
     const trips = await prisma.trip.findMany({
+      where,
       include: {
         vehicle: { select: { registrationNo: true, make: true, model: true } },
         driver: { select: { id: true, name: true, email: true } },
@@ -27,6 +32,11 @@ async function getById(req, res, next) {
       },
     });
     if (!trip) return res.status(404).json({ error: "Trip not found." });
+    
+    if (req.user.role === "DRIVER" && trip.driverId !== req.user.id) {
+      return res.status(403).json({ error: "Forbidden. Can only view own trips." });
+    }
+    
     res.json(trip);
   } catch (err) {
     next(err);
@@ -36,8 +46,14 @@ async function getById(req, res, next) {
 // POST /api/trips
 async function create(req, res, next) {
   try {
+    const data = req.body;
+    if (req.user.role === "DRIVER") {
+      // Drivers can only create trips for themselves
+      data.driverId = req.user.id;
+    }
+    
     const trip = await prisma.trip.create({
-      data: req.body,
+      data,
       include: { vehicle: true, driver: { select: { id: true, name: true } } },
     });
 
@@ -61,9 +77,19 @@ async function update(req, res, next) {
     const existing = await prisma.trip.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: "Trip not found." });
 
+    if (req.user.role === "DRIVER" && existing.driverId !== req.user.id) {
+      return res.status(403).json({ error: "Forbidden. Can only update own trips." });
+    }
+
+    const data = req.body;
+    if (req.user.role === "DRIVER") {
+      // Drivers cannot change the assigned driver
+      delete data.driverId;
+    }
+
     const trip = await prisma.trip.update({
       where: { id: req.params.id },
-      data: req.body,
+      data,
     });
 
     // Status transitions → update vehicle status
@@ -89,6 +115,10 @@ async function update(req, res, next) {
 // DELETE /api/trips/:id
 async function remove(req, res, next) {
   try {
+    const existing = await prisma.trip.findUnique({ where: { id: req.params.id } });
+    if (req.user.role === "DRIVER" && existing && existing.driverId !== req.user.id) {
+      return res.status(403).json({ error: "Forbidden." });
+    }
     await prisma.trip.delete({ where: { id: req.params.id } });
     res.json({ message: "Trip deleted." });
   } catch (err) {

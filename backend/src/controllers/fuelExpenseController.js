@@ -3,7 +3,12 @@ const prisma = require("../config/db");
 // GET /api/fuel-expenses
 async function getAll(req, res, next) {
   try {
+    let where = {};
+    if (req.user.role === "DRIVER") {
+      where.userId = req.user.id;
+    }
     const expenses = await prisma.fuelExpense.findMany({
+      where,
       include: { vehicle: { select: { registrationNo: true, make: true, model: true } } },
       orderBy: { date: "desc" },
     });
@@ -21,6 +26,11 @@ async function getById(req, res, next) {
       include: { vehicle: true },
     });
     if (!expense) return res.status(404).json({ error: "Fuel expense not found." });
+    
+    if (req.user.role === "DRIVER" && expense.userId !== req.user.id) {
+      return res.status(403).json({ error: "Forbidden. Can only view own fuel logs." });
+    }
+    
     res.json(expense);
   } catch (err) {
     next(err);
@@ -33,6 +43,7 @@ async function create(req, res, next) {
     const data = {
       ...req.body,
       totalCost: req.body.totalCost || req.body.litres * req.body.costPerLitre,
+      userId: req.user.id // Track the creator
     };
     const expense = await prisma.fuelExpense.create({ data });
 
@@ -53,9 +64,21 @@ async function create(req, res, next) {
 // PUT /api/fuel-expenses/:id
 async function update(req, res, next) {
   try {
+    const existing = await prisma.fuelExpense.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ error: "Fuel expense not found." });
+    
+    if (req.user.role === "DRIVER" && existing.userId !== req.user.id) {
+      return res.status(403).json({ error: "Forbidden. Can only edit own fuel logs." });
+    }
+
+    const data = { ...req.body };
+    if (req.user.role === "DRIVER") {
+      delete data.userId;
+    }
+
     const expense = await prisma.fuelExpense.update({
       where: { id: req.params.id },
-      data: req.body,
+      data,
     });
     res.json(expense);
   } catch (err) {
@@ -66,6 +89,10 @@ async function update(req, res, next) {
 // DELETE /api/fuel-expenses/:id
 async function remove(req, res, next) {
   try {
+    const existing = await prisma.fuelExpense.findUnique({ where: { id: req.params.id } });
+    if (req.user.role === "DRIVER" && existing && existing.userId !== req.user.id) {
+      return res.status(403).json({ error: "Forbidden." });
+    }
     await prisma.fuelExpense.delete({ where: { id: req.params.id } });
     res.json({ message: "Fuel expense deleted." });
   } catch (err) {

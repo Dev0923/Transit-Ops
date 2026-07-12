@@ -35,12 +35,12 @@ const inrK = (n: number) => (n >= 100000 ? `₹${(n / 100000).toFixed(1)}L` : n 
 
 type TabId = 'overview' | 'fuel' | 'utilization' | 'cost' | 'roi' | 'compliance'
 const TABS: { id: TabId; label: string; roles: RoleId[]; note?: string }[] = [
-  { id: 'overview', label: 'Overview', roles: ['MANAGER', 'MANAGER', 'ADMIN'] },
-  { id: 'fuel', label: 'Fuel Efficiency', roles: ['MANAGER', 'MANAGER', 'ADMIN'] },
-  { id: 'utilization', label: 'Fleet Utilization', roles: ['MANAGER', 'MANAGER', 'ADMIN'] },
-  { id: 'cost', label: 'Operational Cost', roles: ['MANAGER', 'MANAGER', 'ADMIN'] },
-  { id: 'roi', label: 'Vehicle ROI', roles: ['MANAGER', 'MANAGER', 'ADMIN'] },
-  { id: 'compliance', label: 'Compliance', roles: ['MANAGER', 'MANAGER', 'MANAGER', 'ADMIN'], note: 'Safety Officer' },
+  { id: 'overview', label: 'Overview', roles: ['ADMIN', 'MANAGER', 'FINANCIAL_ANALYST', 'SAFETY_OFFICER'] },
+  { id: 'fuel', label: 'Fuel Efficiency', roles: ['ADMIN', 'MANAGER', 'FINANCIAL_ANALYST'] },
+  { id: 'utilization', label: 'Fleet Utilization', roles: ['ADMIN', 'MANAGER', 'FINANCIAL_ANALYST'] },
+  { id: 'cost', label: 'Operational Cost', roles: ['ADMIN', 'MANAGER', 'FINANCIAL_ANALYST'] },
+  { id: 'roi', label: 'Vehicle ROI', roles: ['ADMIN', 'MANAGER', 'FINANCIAL_ANALYST'] },
+  { id: 'compliance', label: 'Compliance', roles: ['ADMIN', 'MANAGER', 'SAFETY_OFFICER'], note: 'Safety Officer' },
 ]
 
 /* ---------- shared UI ---------- */

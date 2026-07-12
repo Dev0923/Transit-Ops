@@ -4,12 +4,11 @@ const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
 router.use(authMiddleware);
-router.use(roleMiddleware("ADMIN"));
 
-router.get("/", ctrl.getAll);
-router.get("/:id", ctrl.getById);
-router.post("/", ctrl.create);
-router.put("/:id", ctrl.update);
-router.delete("/:id", ctrl.remove);
+router.get("/", roleMiddleware("USERS", "READ"), ctrl.getAll);
+router.get("/:id", roleMiddleware("USERS", "READ"), ctrl.getById);
+router.post("/", roleMiddleware("USERS", "WRITE"), ctrl.create);
+router.put("/:id", roleMiddleware("USERS", "WRITE"), ctrl.update);
+router.delete("/:id", roleMiddleware("USERS", "WRITE"), ctrl.remove);
 
 module.exports = router;

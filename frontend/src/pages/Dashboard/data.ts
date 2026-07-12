@@ -11,29 +11,31 @@ import {
   CoinIcon,
 } from './icons'
 
-export type RoleId = 'ADMIN' | 'MANAGER' | 'DRIVER'
+export type RoleId = 'ADMIN' | 'MANAGER' | 'DRIVER' | 'SAFETY_OFFICER' | 'FINANCIAL_ANALYST' | 'UNASSIGNED'
 
-export const ROLES: { id: RoleId | 'fleet_manager' | 'driver' | 'safety_officer' | 'financial_analyst' | 'admin'; name: string; label: string }[] = [
+export const ROLES: { id: RoleId; name: string; label: string }[] = [
   { id: 'ADMIN', name: 'Sam Okafor', label: 'Admin' },
   { id: 'MANAGER', name: 'Alex Reyes', label: 'Fleet Manager' },
   { id: 'DRIVER', name: 'Marco Vidal', label: 'Driver' },
-  { id: 'fleet_manager', name: 'Alex Reyes', label: 'Fleet Manager' },
-  { id: 'driver', name: 'Marco Vidal', label: 'Driver' },
-  { id: 'safety_officer', name: 'Priya Nair', label: 'Safety Officer' },
-  { id: 'financial_analyst', name: 'Dana Kwon', label: 'Financial Analyst' },
-  { id: 'admin', name: 'Sam Okafor', label: 'Admin' },
+  { id: 'SAFETY_OFFICER', name: 'Sarah Chen', label: 'Safety Officer' },
+  { id: 'FINANCIAL_ANALYST', name: 'James Wilson', label: 'Financial Analyst' },
 ]
 
 export const ROLE_LABEL: Record<RoleId, string> = {
   ADMIN: 'Admin',
   MANAGER: 'Fleet Manager',
   DRIVER: 'Driver',
+  SAFETY_OFFICER: 'Safety Officer',
+  FINANCIAL_ANALYST: 'Financial Analyst',
+  UNASSIGNED: 'Unassigned',
 }
 
 // Short annotation tag describing which roles see a widget
 export function roleTag(roles: RoleId[]): string {
   if (roles.length === 3) return 'All roles'
-  return roles.map((r) => ROLE_LABEL[r].split(' ')[0]).join(' + ') // "Fleet + Financial"
+  return roles
+    .map((r) => ROLE_LABEL[r]?.split(' ')[0] || r)
+    .join(' + ') // "Fleet + Financial"
 }
 
 export type Kpi = {

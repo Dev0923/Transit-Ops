@@ -55,6 +55,7 @@ model User {
 
   // Relations
   tripsAsDriver Trip[] @relation("DriverTrips")
+  fuelExpenses  FuelExpense[]
 
   @@map("users")
 }
@@ -128,6 +129,7 @@ model MaintenanceLog {
 model FuelExpense {
   id          String   @id @default(uuid())
   vehicleId   String
+  userId      String?  // Track who logged the expense
   date        DateTime
   litres      Float
   costPerLitre Float
@@ -139,6 +141,7 @@ model FuelExpense {
 
   // Relations
   vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  user    User?   @relation(fields: [userId], references: [id])
 
   @@map("fuel_expenses")
 }

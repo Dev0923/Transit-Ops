@@ -5,10 +5,10 @@ const roleMiddleware = require("../middleware/roleMiddleware");
 
 router.use(authMiddleware);
 
-router.get("/", ctrl.getAll);
-router.get("/:id", ctrl.getById);
-router.post("/", roleMiddleware("ADMIN", "MANAGER"), ctrl.create);
-router.put("/:id", roleMiddleware("ADMIN", "MANAGER"), ctrl.update);
-router.delete("/:id", roleMiddleware("ADMIN"), ctrl.remove);
+router.get("/", roleMiddleware("FUEL", "READ"), ctrl.getAll);
+router.get("/:id", roleMiddleware("FUEL", "READ"), ctrl.getById);
+router.post("/", roleMiddleware("FUEL", "WRITE"), ctrl.create);
+router.put("/:id", roleMiddleware("FUEL", "WRITE"), ctrl.update);
+router.delete("/:id", roleMiddleware("FUEL", "WRITE"), ctrl.remove);
 
 module.exports = router;

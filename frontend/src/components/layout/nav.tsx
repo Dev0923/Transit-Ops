@@ -28,7 +28,7 @@ export const NAV: NavItem[] = [
   { id: 'vehicles', label: 'Vehicle Registry', icon: TruckIcon, roles: ['ADMIN', 'MANAGER', 'DRIVER', 'SAFETY_OFFICER', 'FINANCIAL_ANALYST'] },
   { id: 'drivers', label: 'Driver Management', icon: UsersIcon, roles: ['ADMIN', 'MANAGER', 'DRIVER', 'SAFETY_OFFICER'] },
   { id: 'trips', label: 'Trip Management', icon: RouteIcon, roles: ['ADMIN', 'MANAGER', 'DRIVER', 'SAFETY_OFFICER'] },
-  { id: 'maintenance', label: 'Maintenance Log', icon: WrenchIcon, roles: ['ADMIN', 'MANAGER', 'DRIVER', 'SAFETY_OFFICER', 'FINANCIAL_ANALYST'] },
+  { id: 'maintenance', label: 'Maintenance Log', icon: WrenchIcon, roles: ['ADMIN', 'MANAGER', 'DRIVER', 'FINANCIAL_ANALYST'] },
   { id: 'fuel', label: 'Fuel & Expense', icon: FuelIcon, roles: ['ADMIN', 'MANAGER', 'DRIVER', 'FINANCIAL_ANALYST'] },
   { id: 'reports', label: 'Reports & Analytics', icon: ChartBarIcon, roles: ['ADMIN', 'MANAGER', 'SAFETY_OFFICER', 'FINANCIAL_ANALYST'] },
   { id: 'admin', label: 'User Management', icon: SettingsIcon, roles: ['ADMIN'], admin: true },

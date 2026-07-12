@@ -335,8 +335,8 @@ export default function MaintenanceLog() {
   const { user } = useAuth()
   const role = (user?.role || 'DRIVER') as RoleId
   const canManage = role === 'ADMIN' || role === 'MANAGER'
-  const showCost = role === 'ADMIN' || role === 'MANAGER'
-  const canViewHistory = role === 'ADMIN' || role === 'MANAGER'
+  const showCost = role === 'ADMIN' || role === 'MANAGER' || role === 'FINANCIAL_ANALYST'
+  const canViewHistory = role === 'ADMIN' || role === 'MANAGER' || role === 'FINANCIAL_ANALYST'
 
   const [records, setRecords] = useState<MaintRecord[]>([])
   const [dbVehicles, setDbVehicles] = useState<any[]>([])
