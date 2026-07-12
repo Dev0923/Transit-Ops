@@ -146,6 +146,7 @@ function VehicleForm({
   existing,
   onCancel,
   onSave,
+  canSeeCost,
 }: {
   editing?: Vehicle
   existing: Vehicle[]
