@@ -8,6 +8,7 @@ export interface User {
   role: string;
   isApproved: boolean;
   phone?: string;
+  driverProfile?: any;
 }
 
 export interface AuthContextType {

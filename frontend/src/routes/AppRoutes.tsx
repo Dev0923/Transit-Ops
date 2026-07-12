@@ -12,6 +12,7 @@ import MaintenanceLog from "../pages/MaintenanceLog/MaintenanceLog";
 import FuelExpense from "../pages/FuelExpense/FuelExpense";
 import Reports from "../pages/Reports/Reports";
 import AdminUsers from "../pages/AdminUserManagement/AdminUsers";
+import DriverOnboarding from "../pages/Auth/DriverOnboarding";
 
 export default function AppRoutes() {
   return (
@@ -19,6 +20,7 @@ export default function AppRoutes() {
       {/* Public routes */}
       <Route path="/login" element={<AuthScreen initialMode="login" />} />
       <Route path="/signup" element={<AuthScreen initialMode="signup" />} />
+      <Route path="/driver-onboarding" element={<ProtectedRoute roles={["DRIVER"]}><DriverOnboarding /></ProtectedRoute>} />
 
       {/* Protected routes inside the AppShell layout */}
       <Route

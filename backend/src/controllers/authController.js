@@ -38,7 +38,7 @@ async function login(req, res, next) {
   try {
     const { email, password } = req.body;
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email }, include: { driverProfile: true } });
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials." });
     }
@@ -59,7 +59,7 @@ async function login(req, res, next) {
     res.json({
       message: "Login successful.",
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, isApproved: user.isApproved, phone: user.phone },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, isApproved: user.isApproved, phone: user.phone, driverProfile: user.driverProfile },
     });
   } catch (err) {
     next(err);
@@ -71,7 +71,7 @@ async function me(req, res, next) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { id: true, name: true, email: true, role: true, phone: true, isActive: true, isApproved: true },
+      select: { id: true, name: true, email: true, role: true, phone: true, isActive: true, isApproved: true, driverProfile: true },
     });
 
     if (!user) return res.status(404).json({ error: "User not found." });

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import useAuth from '../../hooks/useAuth'
 import {
   TruckIcon,
@@ -19,6 +19,11 @@ export default function AppShell() {
   const role = user?.isApproved ? ((user?.role?.toUpperCase() as RoleId) || 'DRIVER') : 'UNASSIGNED'
   const navigate = useNavigate()
   const location = useLocation()
+
+  if (role === 'DRIVER' && !user?.driverProfile) {
+    return <Navigate to="/driver-onboarding" replace />;
+  }
+
   
   const pathMap: Record<string, Page> = {
     '/dashboard': 'dashboard',

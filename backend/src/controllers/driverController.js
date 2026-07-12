@@ -101,4 +101,40 @@ async function remove(req, res, next) {
   }
 }
 
-module.exports = { getAll, getById, create, update, remove };
+// POST /api/drivers/onboard
+async function onboard(req, res, next) {
+  try {
+    if (req.user.role !== "DRIVER") {
+      return res.status(403).json({ error: "Only drivers can onboard." });
+    }
+    const { licenseNumber, licenseCategory, licenseExpiry, photoData } = req.body;
+    
+    // Check if profile exists
+    const existing = await prisma.driverProfile.findUnique({
+      where: { userId: req.user.id }
+    });
+    
+    if (existing) {
+      return res.status(400).json({ error: "Onboarding already completed." });
+    }
+
+    const profile = await prisma.driverProfile.create({
+      data: {
+        userId: req.user.id,
+        licenseNumber,
+        licenseCategory,
+        licenseExpiry: new Date(licenseExpiry),
+        photoData
+      }
+    });
+
+    res.status(201).json(profile);
+  } catch (err) {
+    if (err.code === "P2002") {
+      return res.status(409).json({ error: "License number already exists." });
+    }
+    next(err);
+  }
+}
+
+module.exports = { getAll, getById, create, update, remove, onboard };

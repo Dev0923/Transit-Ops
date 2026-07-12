@@ -6,4 +6,5 @@ export const driverService = {
   create: (data) => api.post("/drivers", data),
   update: (id, data) => api.put(`/drivers/${id}`, data),
   remove: (id) => api.delete(`/drivers/${id}`),
+  onboard: (data) => api.post("/drivers/onboard", data),
 };
