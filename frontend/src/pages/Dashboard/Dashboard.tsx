@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { tripService } from '../../services/tripService'
 import {
   ResponsiveContainer,
@@ -158,6 +159,7 @@ const activityIcon: Record<string, { icon: typeof RouteIcon; cls: string }> = {
 import useAuth from '../../hooks/useAuth'
 
 function DriverDashboard({ user }: { user: any }) {
+  const navigate = useNavigate()
   const [trips, setTrips] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -290,7 +292,7 @@ function DriverDashboard({ user }: { user: any }) {
 
         <section className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-[15px] font-semibold text-navy-900">Quick Actions</h2>
-          <button className="inline-flex items-center gap-1.5 rounded-lg bg-navy-800 px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-navy-900">
+          <button onClick={() => navigate('/trips')} className="inline-flex items-center gap-1.5 rounded-lg bg-navy-800 px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-navy-900">
             <PlusIcon className="h-4 w-4 text-teal-400" />
             Create Trip
           </button>
