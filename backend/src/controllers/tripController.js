@@ -60,8 +60,8 @@ async function create(req, res, next) {
       include: { vehicle: true, driver: { select: { id: true, name: true } } },
     });
 
-    // Mark vehicle as ON_TRIP if the trip is starting now
-    if (trip.status === "IN_PROGRESS") {
+    // Mark vehicle as ON_TRIP if it's assigned to a trip
+    if (trip.status === "IN_PROGRESS" || trip.status === "SCHEDULED" || trip.status === "DRAFT") {
       await prisma.vehicle.update({
         where: { id: trip.vehicleId },
         data: { status: "ON_TRIP" },
@@ -104,7 +104,7 @@ async function update(req, res, next) {
     });
 
     // Status transitions → update vehicle status
-    if (req.body.status === "IN_PROGRESS") {
+    if (req.body.status === "IN_PROGRESS" || req.body.status === "SCHEDULED" || req.body.status === "DRAFT") {
       await prisma.vehicle.update({
         where: { id: trip.vehicleId },
         data: { status: "ON_TRIP" },

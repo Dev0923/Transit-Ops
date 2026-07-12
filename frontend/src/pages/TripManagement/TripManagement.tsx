@@ -116,10 +116,13 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
   // Compute available vehicle types from dbVehicles
   const vehicleTypes = useMemo(() => Array.from(new Set(dbVehicles.map(v => v.type).filter(Boolean))), [dbVehicles])
   
-  // Filter vehicles by selected type
+  // Filter vehicles by selected type and ensure they are AVAILABLE
   const availableVehicles = useMemo(() => {
-    if (!form.vehicleType) return dbVehicles
-    return dbVehicles.filter(v => v.type === form.vehicleType)
+    let filtered = dbVehicles.filter(v => v.status === 'AVAILABLE' || v.status === 'Available')
+    if (form.vehicleType) {
+      filtered = filtered.filter(v => v.type === form.vehicleType)
+    }
+    return filtered
   }, [dbVehicles, form.vehicleType])
 
   const availableDrivers = useMemo(() => dbDrivers.filter((d) => d.isActive), [dbDrivers])
