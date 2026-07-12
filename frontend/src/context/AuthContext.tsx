@@ -32,7 +32,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Fetch current user
       api
         .get("/auth/me")
-        .then((res) => setUser(res.data.user))
+        .then((res) => {
+          setUser(res.data.user);
+          if (res.data.token) {
+            localStorage.setItem("token", res.data.token);
+            api.defaults.headers.common["Authorization"] = `Bearer ${res.data.token}`;
+            setToken(res.data.token);
+          }
+        })
         .catch(() => {
           // Token invalid — clear
           logout();

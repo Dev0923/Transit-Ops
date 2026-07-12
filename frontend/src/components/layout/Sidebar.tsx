@@ -14,12 +14,12 @@ import useAuth from "../../hooks/useAuth";
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/vehicles", icon: Truck, label: "Vehicles" },
-  { to: "/drivers", icon: Users, label: "Drivers", roles: ["ADMIN", "MANAGER"] },
-  { to: "/trips", icon: Route, label: "Trips" },
-  { to: "/maintenance", icon: Wrench, label: "Maintenance" },
-  { to: "/fuel-expenses", icon: Fuel, label: "Fuel & Expenses" },
-  { to: "/reports", icon: BarChart3, label: "Reports", roles: ["ADMIN", "MANAGER"] },
+  { to: "/vehicles", icon: Truck, label: "Vehicles", roles: ["ADMIN", "MANAGER", "DRIVER", "SAFETY_OFFICER", "FINANCIAL_ANALYST"] },
+  { to: "/drivers", icon: Users, label: "Drivers", roles: ["ADMIN", "MANAGER", "DRIVER", "SAFETY_OFFICER"] },
+  { to: "/trips", icon: Route, label: "Trips", roles: ["ADMIN", "MANAGER", "DRIVER", "SAFETY_OFFICER", "FINANCIAL_ANALYST"] },
+  { to: "/maintenance", icon: Wrench, label: "Maintenance", roles: ["ADMIN", "MANAGER", "DRIVER", "FINANCIAL_ANALYST"] },
+  { to: "/fuel-expenses", icon: Fuel, label: "Fuel & Expenses", roles: ["ADMIN", "MANAGER", "DRIVER", "FINANCIAL_ANALYST"] },
+  { to: "/reports", icon: BarChart3, label: "Reports", roles: ["ADMIN", "MANAGER", "SAFETY_OFFICER", "FINANCIAL_ANALYST"] },
   { to: "/users", icon: Shield, label: "User Management", roles: ["ADMIN"] },
 ];
 

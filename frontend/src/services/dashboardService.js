@@ -14,5 +14,8 @@ export const dashboardService = {
       url += `?licenseStatus=${licenseStatus}`;
     }
     return api.get(url);
+  },
+  getAdmin: () => {
+    return api.get("/dashboard/admin");
   }
 };

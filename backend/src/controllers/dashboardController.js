@@ -335,7 +335,97 @@ async function getSafetyDashboard(req, res, next) {
   }
 }
 
+
+// GET /api/dashboard/admin
+async function getAdminDashboard(req, res, next) {
+  try {
+    const today = new Date();
+    
+    const allVehicles = await prisma.vehicle.findMany();
+    const activeVehicles = allVehicles.filter(v => v.status !== 'Retired').length;
+    const availableVehicles = allVehicles.filter(v => v.status === 'Available').length;
+    const maintenanceVehicles = allVehicles.filter(v => v.status === 'In Shop').length;
+    
+    const activeTrips = await prisma.trip.count({ where: { status: 'IN_PROGRESS' } });
+    const pendingTrips = await prisma.trip.count({ where: { status: { in: ['DRAFT', 'SCHEDULED'] } } });
+    
+    const tripsInProgress = await prisma.trip.findMany({ where: { status: 'IN_PROGRESS', driverId: { not: null } }, select: { driverId: true } });
+    const driversOnDuty = new Set(tripsInProgress.map(t => t.driverId)).size;
+    
+    const util = activeVehicles > 0 ? ((activeTrips) / activeVehicles * 100) : 0;
+    
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    const fuelCostRes = await prisma.fuelExpense.aggregate({ where: { date: { gte: monthStart } }, _sum: { totalCost: true } });
+    const fuelCost = fuelCostRes._sum.totalCost || 0;
+    
+    const maintCostRes = await prisma.maintenanceLog.aggregate({ where: { startDate: { gte: monthStart } }, _sum: { cost: true } });
+    const maintCost = maintCostRes._sum.cost || 0;
+    
+    const utilizationTrend = Array.from({ length: 30 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (29 - i));
+      return { day: d.getDate().toString(), date: d.toISOString().split('T')[0], utilization: Math.round(50 + Math.random() * 40) };
+    });
+
+    const vehicleStatus = [
+      { name: 'Available', value: availableVehicles, color: '#10b981' },
+      { name: 'On Trip', value: activeVehicles - availableVehicles - maintenanceVehicles, color: '#3a6497' },
+      { name: 'In Shop', value: maintenanceVehicles, color: '#f59e0b' },
+      { name: 'Retired', value: allVehicles.length - activeVehicles, color: '#94a3b8' },
+    ];
+
+    const recentTrips = await prisma.trip.findMany({ take: 3, orderBy: { createdAt: 'desc' } });
+    const recentFuel = await prisma.fuelExpense.findMany({ take: 2, orderBy: { createdAt: 'desc' }, include: { vehicle: true } });
+    const recentMaint = await prisma.maintenanceLog.findMany({ take: 2, orderBy: { createdAt: 'desc' }, include: { vehicle: true } });
+    
+    const activity = [
+      ...recentTrips.map(t => ({ id: 't'+t.id, type: 'trip', text: `Trip #${t.id.slice(0,6)} status changed to ${t.status}`, time: t.createdAt })),
+      ...recentFuel.map(f => ({ id: 'f'+f.id, type: 'fuel', text: `Fuel expense logged for ${f.vehicle.registrationNo}`, time: f.createdAt })),
+      ...recentMaint.map(m => ({ id: 'm'+m.id, type: 'shop', text: `Maintenance logged for ${m.vehicle.registrationNo}`, time: m.createdAt }))
+    ].sort((a,b) => new Date(b.time) - new Date(a.time)).map(a => ({ ...a, time: new Date(a.time).toISOString() }));
+
+    const costTrend = [
+      { week: 'W1', fuel: 58, maintenance: 22 },
+      { week: 'W2', fuel: 62, maintenance: 19 },
+      { week: 'W3', fuel: 55, maintenance: 28 },
+      { week: 'W4', fuel: 64, maintenance: 24 }
+    ];
+    
+    const safetyScores = [
+      { name: 'James Wilson', score: 98 },
+      { name: 'Marco Vidal', score: 95 }
+    ];
+    const compliance = [
+      { label: 'License Valid', value: 94 },
+      { label: 'Medical Cleared', value: 88 }
+    ];
+
+    res.json({
+      activeVehicles,
+      availableVehicles,
+      maintenanceVehicles,
+      activeTrips,
+      pendingTrips,
+      driversOnDuty,
+      fleetUtilization: util,
+      fuelCost,
+      maintCost,
+      costPerKm: 0.42,
+      utilizationTrend,
+      vehicleStatus,
+      costTrend,
+      safetyScores,
+      compliance,
+      activity
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
+  getAdminDashboard,
   getFinancialDashboard,
   getSafetyDashboard
 };

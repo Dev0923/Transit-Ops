@@ -17,7 +17,7 @@ import {
   Bar,
   Legend,
 } from 'recharts'
-import { PlusIcon, AlertIcon, RouteIcon, WrenchIcon, UsersIcon, FuelIcon, ShieldIcon, ChevronDownIcon, ClockIcon, CoinIcon, GaugeIcon } from './icons'
+import { PlusIcon, AlertIcon, RouteIcon, WrenchIcon, UsersIcon, FuelIcon, ShieldIcon, ChevronDownIcon, ClockIcon, CoinIcon, GaugeIcon, TruckIcon, CarIcon } from './icons'
 import {
   ROLES,
   ROLE_LABEL,
@@ -753,73 +753,51 @@ function SafetyOfficerDashboard({ user }: { user: any }) {
   )
 }
 
-export default function Dashboard() {
-  const { user } = useAuth()
+
+function AdminManagerDashboard({ user }: { user: any }) {
+  const navigate = useNavigate()
   const role = user?.role as RoleId
+  const [data, setData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
   const [vehicleType, setVehicleType] = useState('All Vehicle Types')
   const [status, setStatus] = useState('All Statuses')
   const [region, setRegion] = useState('All Regions')
 
-  const kpis = useMemo(() => KPIS.filter((k) => k.roles.includes(role)), [role])
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const res = await dashboardService.getAdmin()
+        setData(res.data)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
   const actions = useMemo(() => quickActions.filter((a) => a.roles.includes(role)), [role])
 
-  const can = {
-    utilTrend: role === 'ADMIN' || role === 'MANAGER',
-    statusDonut: role === 'ADMIN' || role === 'MANAGER',
-    costTrend: role === 'ADMIN' || role === 'MANAGER',
-    safety: role === 'ADMIN' || role === 'MANAGER',
-    compliance: role === 'ADMIN' || role === 'MANAGER',
-    license: role === 'ADMIN' || role === 'MANAGER' || role === 'ADMIN' || role === 'MANAGER',
-  }
+  if (loading && !data) return <div className="p-8 text-center text-slate-500">Loading your dashboard...</div>
 
-  if (role === 'DRIVER') {
-    return <DriverDashboard user={user} />
-  }
-
-  if (role === 'FINANCIAL_ANALYST') {
-    return <FinancialAnalystDashboard user={user} />
-  }
-
-  if (role === 'SAFETY_OFFICER') {
-    return <SafetyOfficerDashboard user={user} />
-  }
-
-  if (role === 'UNASSIGNED') {
-    return (
-      <div className="font-sans text-navy-950 mx-auto max-w-3xl px-4 py-12 sm:px-6">
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm text-center">
-          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-amber-50 text-amber-500">
-            <AlertIcon className="h-8 w-8" />
-          </div>
-          <h2 className="text-2xl font-bold text-navy-900">Account Pending Approval</h2>
-          <p className="mt-2 text-[14px] text-slate-500">Your account is currently under review by an administrator. You will gain access to the dashboard once a role is assigned.</p>
-          
-          <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-6 text-left">
-            <h3 className="mb-4 text-lg font-semibold text-navy-900">Your Profile</h3>
-            <div className="grid grid-cols-1 gap-4 text-[13px] sm:grid-cols-2">
-              <div>
-                <span className="mb-1 block font-medium text-slate-500">Name</span>
-                <span className="font-semibold text-navy-900">{user?.name}</span>
-              </div>
-              <div>
-                <span className="mb-1 block font-medium text-slate-500">Email</span>
-                <span className="font-semibold text-navy-900">{user?.email}</span>
-              </div>
-              <div>
-                <span className="mb-1 block font-medium text-slate-500">Phone</span>
-                <span className="font-semibold text-navy-900">{user?.phone || 'Not provided'}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Create kpis dynamically from data
+  const dynamicKpis = [
+    { key: 'active_vehicles', label: 'Active Vehicles', value: data?.activeVehicles?.toLocaleString('en-IN') || '0', trend: 3.4, icon: TruckIcon, roles: ['ADMIN', 'MANAGER'], accent: 'navy' as const },
+    { key: 'available_vehicles', label: 'Available Vehicles', value: data?.availableVehicles?.toLocaleString('en-IN') || '0', trend: 1.2, icon: CarIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' as const },
+    { key: 'maintenance', label: 'Vehicles in Maintenance', value: data?.maintenanceVehicles?.toLocaleString('en-IN') || '0', trend: 6.1, trendGood: false, icon: WrenchIcon, roles: ['ADMIN', 'MANAGER'], accent: 'amber' as const },
+    { key: 'active_trips', label: 'Active Trips', value: data?.activeTrips?.toLocaleString('en-IN') || '0', trend: 4.8, icon: RouteIcon, roles: ['ADMIN', 'MANAGER', 'DRIVER'], accent: 'navy' as const },
+    { key: 'pending_trips', label: 'Pending Trips', value: data?.pendingTrips?.toLocaleString('en-IN') || '0', trend: -2.3, trendGood: false, icon: ClockIcon, roles: ['ADMIN', 'MANAGER', 'DRIVER'], accent: 'amber' as const },
+    { key: 'drivers_on_duty', label: 'Drivers On Duty', value: data?.driversOnDuty?.toLocaleString('en-IN') || '0', trend: 2.0, icon: UsersIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' as const },
+    { key: 'utilization', label: 'Fleet Utilization', value: `${data?.fleetUtilization || 0}%`, trend: 5.2, icon: GaugeIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' as const },
+    { key: 'fuel_cost', label: 'Monthly Fuel Cost', value: `$${((data?.fuelCost || 0) / 1000).toFixed(1)}K`, trend: -4.1, trendGood: false, icon: FuelIcon, roles: ['ADMIN', 'MANAGER'], accent: 'navy' as const },
+    { key: 'maint_spend', label: 'Maintenance Spend', value: `$${((data?.maintCost || 0) / 1000).toFixed(1)}K`, trend: 2.7, trendGood: false, icon: WrenchIcon, roles: ['ADMIN', 'MANAGER'], accent: 'amber' as const },
+    { key: 'cost_per_km', label: 'Cost per Km', value: `$${data?.costPerKm || 0}`, trend: -1.8, icon: CoinIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' as const },
+  ].filter(k => k.roles.includes(role))
 
   return (
     <div className="font-sans text-navy-950">
-      {/* ===== Filters bar ===== */}
       <div className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-[1440px] flex-wrap items-end gap-3 px-4 py-3 sm:px-6">
           <Select
@@ -846,14 +824,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ===== Body ===== */}
       <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6">
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-          {/* --- Left column --- */}
           <div className="flex flex-col gap-6">
-            {/* KPI grid */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {kpis.map((k) => {
+              {dynamicKpis.map((k) => {
                 const a = accentMap[k.accent]
                 const Icon = k.icon
                 return (
@@ -874,13 +849,19 @@ export default function Dashboard() {
               })}
             </div>
 
-            {/* Quick actions */}
             {actions.length > 0 && (
               <Card title="Quick Actions" roles={quickActions.flatMap((a) => a.roles).filter((v, i, s) => s.indexOf(v) === i)}>
                 <div className="flex flex-wrap gap-2.5">
                   {actions.map((a) => (
                     <button
                       key={a.key}
+                      onClick={() => {
+                        if (a.key === 'create_trip') navigate('/trips')
+                        else if (a.key === 'reg_driver') navigate('/drivers')
+                        else if (a.key === 'reg_vehicle') navigate('/registry')
+                        else if (a.key === 'log_maint') navigate('/maintenance')
+                        else if (a.key === 'log_fuel') navigate('/fuel')
+                      }}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-navy-800 px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-navy-900 focus-visible:ring-4 focus-visible:ring-navy-800/25"
                     >
                       <PlusIcon className="h-4 w-4 text-teal-400" />
@@ -891,13 +872,11 @@ export default function Dashboard() {
               </Card>
             )}
 
-            {/* Charts grid */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              {can.utilTrend && (
                 <Card title="Fleet Utilization — Last 30 Days" roles={['ADMIN', 'MANAGER']} className="lg:col-span-2">
                   <div className="h-[240px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={utilizationTrend} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
+                      <AreaChart data={data?.utilizationTrend || []} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
                         <defs>
                           <linearGradient id="utilFill" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="#0d9488" stopOpacity={0.28} />
@@ -906,23 +885,21 @@ export default function Dashboard() {
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#eef2f6" vertical={false} />
                         <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} interval={4} />
-                        <YAxis domain={[50, 95]} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} unit="%" />
+                        <YAxis domain={[50, 100]} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} unit="%" />
                         <Tooltip content={<ChartTooltip unit="%" />} />
                         <Area type="monotone" dataKey="utilization" stroke="#0d9488" strokeWidth={2.5} fill="url(#utilFill)" />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 </Card>
-              )}
 
-              {can.statusDonut && (
                 <Card title="Vehicle Status Breakdown" roles={['ADMIN', 'MANAGER']}>
                   <div className="flex items-center gap-4">
                     <div className="h-[180px] w-[180px] shrink-0">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={vehicleStatus} dataKey="value" innerRadius={54} outerRadius={80} paddingAngle={2} stroke="none">
-                            {vehicleStatus.map((s) => (
+                          <Pie data={data?.vehicleStatus || []} dataKey="value" innerRadius={54} outerRadius={80} paddingAngle={2} stroke="none">
+                            {(data?.vehicleStatus || []).map((s: any) => (
                               <Cell key={s.name} fill={s.color} />
                             ))}
                           </Pie>
@@ -931,7 +908,7 @@ export default function Dashboard() {
                       </ResponsiveContainer>
                     </div>
                     <ul className="flex-1 space-y-2.5">
-                      {vehicleStatus.map((s) => (
+                      {(data?.vehicleStatus || []).map((s: any) => (
                         <li key={s.name} className="flex items-center gap-2 text-[13px]">
                           <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
                           <span className="text-slate-600">{s.name}</span>
@@ -941,17 +918,15 @@ export default function Dashboard() {
                     </ul>
                   </div>
                 </Card>
-              )}
 
-              {can.costTrend && (
                 <Card
                   title="Operational Cost — Fuel vs Maintenance"
                   roles={['ADMIN', 'MANAGER']}
-                  className={can.statusDonut ? '' : 'lg:col-span-2'}
+                  className=""
                 >
                   <div className="h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={costTrend} margin={{ top: 6, right: 8, left: -20, bottom: 0 }} barGap={4}>
+                      <BarChart data={data?.costTrend || []} margin={{ top: 6, right: 8, left: -20, bottom: 0 }} barGap={4}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#eef2f6" vertical={false} />
                         <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                         <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} unit="k" />
@@ -963,12 +938,10 @@ export default function Dashboard() {
                     </ResponsiveContainer>
                   </div>
                 </Card>
-              )}
 
-              {can.safety && (
                 <Card title="Driver Safety Scores" roles={['ADMIN', 'MANAGER']}>
                   <ul className="space-y-3">
-                    {safetyScores.map((d) => {
+                    {(data?.safetyScores || []).map((d: any) => {
                       const tone = d.score >= 90 ? '#0d9488' : d.score >= 75 ? '#f59e0b' : '#ef4444'
                       return (
                         <li key={d.name} className="flex items-center gap-3 text-[13px]">
@@ -982,12 +955,10 @@ export default function Dashboard() {
                     })}
                   </ul>
                 </Card>
-              )}
 
-              {can.compliance && (
                 <Card title="Driver Compliance" roles={['ADMIN', 'MANAGER']} action={<ShieldIcon className="h-4 w-4 text-teal-600" />}>
                   <div className="grid grid-cols-2 gap-4">
-                    {compliance.map((c) => (
+                    {(data?.compliance || []).map((c: any) => (
                       <div key={c.label} className="rounded-lg bg-navy-50/60 p-3">
                         <div className="flex items-baseline gap-1">
                           <span className="text-[22px] font-bold text-navy-900">{c.value}</span>
@@ -1004,50 +975,12 @@ export default function Dashboard() {
                     ))}
                   </div>
                 </Card>
-              )}
-
-              {can.license && (
-                <Card
-                  title="License Expiry Alerts"
-                  roles={['ADMIN', 'MANAGER']}
-                  className={can.safety || can.statusDonut ? '' : 'lg:col-span-2'}
-                >
-                  <ul className="divide-y divide-slate-100">
-                    {licenseAlerts.map((l) => {
-                      const red = l.days <= 10
-                      return (
-                        <li key={l.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                          <span
-                            className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${
-                              red ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'
-                            }`}
-                          >
-                            <AlertIcon className="h-4 w-4" />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[13px] font-medium text-navy-900">{l.name}</span>
-                            <span className="block font-mono text-[11px] text-slate-400">{l.id}</span>
-                          </span>
-                          <span
-                            className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                              red ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'
-                            }`}
-                          >
-                            {l.days}d left
-                          </span>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </Card>
-              )}
             </div>
           </div>
 
-          {/* --- Right sidebar: activity feed --- */}
           <Card title="Recent Activity" roles={ROLES.map((r) => r.id)} className="h-fit xl:sticky xl:top-24">
             <ul className="space-y-1">
-              {activity.map((ev) => {
+              {(data?.activity || []).map((ev: any) => {
                 const conf = activityIcon[ev.type]
                 const Icon = conf.icon
                 return (
@@ -1057,7 +990,7 @@ export default function Dashboard() {
                     </span>
                     <span className="min-w-0">
                       <span className="block text-[12.5px] leading-snug text-navy-800">{ev.text}</span>
-                      <span className="mt-0.5 block text-[11px] text-slate-400">{ev.time}</span>
+                      <span className="mt-0.5 block text-[11px] text-slate-400">{new Date(ev.time).toLocaleString()}</span>
                     </span>
                   </li>
                 )
@@ -1068,4 +1001,39 @@ export default function Dashboard() {
       </main>
     </div>
   )
+}
+
+
+export default function Dashboard() {
+  const { user } = useAuth()
+  const role = user?.role as RoleId
+
+  if (role === 'DRIVER') {
+    return <DriverDashboard user={user} />
+  }
+
+  if (role === 'FINANCIAL_ANALYST') {
+    return <FinancialAnalystDashboard user={user} />
+  }
+
+  if (role === 'SAFETY_OFFICER') {
+    return <SafetyOfficerDashboard user={user} />
+  }
+
+  if (role === 'UNASSIGNED') {
+    return (
+      <div className="font-sans text-navy-950 mx-auto max-w-3xl px-4 py-12 sm:px-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm text-center">
+          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-amber-50 text-amber-500">
+            <AlertIcon className="h-8 w-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-navy-900">Account Pending Approval</h2>
+          <p className="mt-2 text-[14px] text-slate-500">Your account is currently under review by an administrator. You will gain access to the dashboard once a role is assigned.</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Admin and Manager
+  return <AdminManagerDashboard user={user} />
 }

@@ -76,7 +76,10 @@ async function me(req, res, next) {
 
     if (!user) return res.status(404).json({ error: "User not found." });
 
-    res.json({ user });
+    const { generateToken } = require("../utils/jwt");
+    const token = generateToken(user);
+
+    res.json({ user, token });
   } catch (err) {
     next(err);
   }
