@@ -9,7 +9,7 @@ router.use(authMiddleware);
 router.get("/financial", roleMiddleware("REPORTS", "FINANCIAL"), ctrl.getFinancialDashboard);
 
 // Only Safety Officers (or ADMIN/MANAGER with REPORT permissions) can view this dashboard
-router.get("/safety", roleMiddleware("REPORTS", "SAFETY"), ctrl.getSafetyDashboard);
+router.get("/safety", roleMiddleware("REPORTS", "COMPLIANCE"), ctrl.getSafetyDashboard);
 
 // Admin and Manager can view the general dashboard
 router.get("/admin", ctrl.getAdminDashboard);

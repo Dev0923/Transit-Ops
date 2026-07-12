@@ -385,12 +385,28 @@ async function getAdminDashboard(req, res, next) {
       ...recentMaint.map(m => ({ id: 'm'+m.id, type: 'shop', text: `Maintenance logged for ${m.vehicle.registrationNo}`, time: m.createdAt }))
     ].sort((a,b) => new Date(b.time) - new Date(a.time)).map(a => ({ ...a, time: new Date(a.time).toISOString() }));
 
-    const costTrend = [
-      { week: 'W1', fuel: 58, maintenance: 22 },
-      { week: 'W2', fuel: 62, maintenance: 19 },
-      { week: 'W3', fuel: 55, maintenance: 28 },
-      { week: 'W4', fuel: 64, maintenance: 24 }
-    ];
+    // Cost trend — real data grouped by week for current month
+    const costTrend = [];
+    const weekStart = new Date(monthStart);
+    let weekNum = 1;
+    while (weekStart < today) {
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+      const actualEnd = weekEnd > today ? today : weekEnd;
+
+      const wFuel = await prisma.fuelExpense.aggregate({ where: { date: { gte: weekStart, lte: actualEnd } }, _sum: { totalCost: true } });
+      const wMaint = await prisma.maintenanceLog.aggregate({ where: { startDate: { gte: weekStart, lte: actualEnd } }, _sum: { cost: true } });
+
+      costTrend.push({
+        week: `W${weekNum}`,
+        fuel: Math.round(wFuel._sum.totalCost || 0),
+        maintenance: Math.round(wMaint._sum.cost || 0),
+      });
+
+      weekStart.setDate(weekStart.getDate() + 7);
+      weekNum++;
+    }
     
     const safetyScores = [
       { name: 'James Wilson', score: 98 },

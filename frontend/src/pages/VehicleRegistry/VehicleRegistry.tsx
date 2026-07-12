@@ -506,7 +506,7 @@ export default function VehicleRegistry() {
         capacity: v.capacityKg,
         currentMileage: v.odometerKm,
         purchaseCost: v.costInr,
-        status: v.status === 'Available' ? 'AVAILABLE' : v.status === 'On Trip' ? 'ON_TRIP' : 'MAINTENANCE'
+        status: v.status === 'Available' ? 'AVAILABLE' : v.status === 'On Trip' ? 'ON_TRIP' : 'IN_SHOP'
       }
 
       if (panel?.mode === 'edit') {
