@@ -502,6 +502,10 @@ export default function VehicleRegistry() {
         make: v.model.split(' ')[0] || 'Unknown',
         model: v.model.split(' ').slice(1).join(' ') || 'Unknown',
         year: 2024,
+        type: v.type || 'Truck',
+        capacity: v.capacityKg,
+        currentMileage: v.odometerKm,
+        purchaseCost: v.costInr,
         status: v.status === 'Available' ? 'AVAILABLE' : v.status === 'On Trip' ? 'ON_TRIP' : 'MAINTENANCE'
       }
 
