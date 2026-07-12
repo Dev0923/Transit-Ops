@@ -342,9 +342,9 @@ async function getAdminDashboard(req, res, next) {
     const today = new Date();
     
     const allVehicles = await prisma.vehicle.findMany();
-    const activeVehicles = allVehicles.filter(v => v.status !== 'Retired').length;
-    const availableVehicles = allVehicles.filter(v => v.status === 'Available').length;
-    const maintenanceVehicles = allVehicles.filter(v => v.status === 'In Shop').length;
+    const activeVehicles = allVehicles.filter(v => v.status !== 'RETIRED').length;
+    const availableVehicles = allVehicles.filter(v => v.status === 'AVAILABLE').length;
+    const maintenanceVehicles = allVehicles.filter(v => v.status === 'IN_SHOP').length;
     
     const activeTrips = await prisma.trip.count({ where: { status: 'IN_PROGRESS' } });
     const pendingTrips = await prisma.trip.count({ where: { status: { in: ['DRAFT', 'SCHEDULED'] } } });
