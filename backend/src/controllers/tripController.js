@@ -1,4 +1,5 @@
 const prisma = require("../config/db");
+const { geocodeTripEndpoints } = require("../services/geocodingService");
 
 // GET /api/trips
 async function getAll(req, res, next) {
@@ -54,7 +55,22 @@ async function create(req, res, next) {
       // Drivers can only create trips for themselves
       data.driverId = req.user.id;
     }
-    
+
+    // Geocode origin and destination (best-effort, non-blocking on failure)
+    try {
+      const coords = await geocodeTripEndpoints(
+        data.origin || "",
+        data.destination || ""
+      );
+      data.sourceLat = coords.sourceLat;
+      data.sourceLng = coords.sourceLng;
+      data.destLat = coords.destLat;
+      data.destLng = coords.destLng;
+    } catch (geoErr) {
+      console.warn("Geocoding failed (non-fatal):", geoErr.message);
+      // Continue without coordinates — map will show fallback
+    }
+
     const trip = await prisma.trip.create({
       data,
       include: { vehicle: true, driver: { select: { id: true, name: true } } },

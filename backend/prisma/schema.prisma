@@ -100,6 +100,10 @@ model Trip {
   endTime       DateTime?
   status        TripStatus @default(DRAFT)
   notes         String?
+  sourceLat     Float?
+  sourceLng     Float?
+  destLat       Float?
+  destLng       Float?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 

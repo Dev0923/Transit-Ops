@@ -12,7 +12,12 @@ export type Trip = {
   date: string // planned date, ISO
   time?: string // planned time, e.g. "09:00"
   ownedBySelf?: boolean // created by / assigned to the logged-in driver
+  sourceLat?: number | null
+  sourceLng?: number | null
+  destLat?: number | null
+  destLng?: number | null
 }
+
 
 export const TRIP_STATUS_STYLES: Record<TripStatus, string> = {
   Draft: 'bg-slate-100 text-slate-500 ring-slate-500/20',

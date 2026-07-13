@@ -3,6 +3,7 @@ import useAuth from '../../hooks/useAuth'
 import { tripService } from '../../services/tripService'
 import { vehicleService } from '../../services/vehicleService'
 import { driverService } from '../../services/driverService'
+import TripDetailPanel from '../../components/TripDetailPanel'
 import {
   SearchIcon,
   PlusIcon,
@@ -116,16 +117,32 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
   // Compute available vehicle types from dbVehicles
   const vehicleTypes = useMemo(() => Array.from(new Set(dbVehicles.map(v => v.type).filter(Boolean))), [dbVehicles])
   
-  // Filter vehicles by selected type and ensure they are AVAILABLE
+  // Filter vehicles by selected type and ensure they are available on the selected date
   const availableVehicles = useMemo(() => {
-    let filtered = dbVehicles.filter(v => v.status === 'AVAILABLE' || v.status === 'Available')
+    let eligible = dbVehicles.filter(v => v.status !== 'RETIRED' && v.status !== 'Retired' && v.status !== 'IN_SHOP' && v.status !== 'In Shop')
+    
+    const busyVehicleIds = new Set(
+      existing
+        .filter(t => t.date === form.date && (t.status === 'Draft' || t.status === 'Dispatched'))
+        .map(t => t.vehicleReg)
+    )
+
+    let filtered = eligible.filter(v => !busyVehicleIds.has(v.id) && !busyVehicleIds.has(v.registrationNo))
+
     if (form.vehicleType) {
       filtered = filtered.filter(v => v.type === form.vehicleType)
     }
     return filtered
-  }, [dbVehicles, form.vehicleType])
+  }, [dbVehicles, form.vehicleType, form.date, existing])
 
-  const availableDrivers = useMemo(() => dbDrivers.filter((d) => d.isActive), [dbDrivers])
+  const availableDrivers = useMemo(() => {
+    const busyDriverIds = new Set(
+      existing
+        .filter(t => t.date === form.date && (t.status === 'Draft' || t.status === 'Dispatched'))
+        .map(t => t.driverName)
+    )
+    return dbDrivers.filter((d) => d.isActive && !busyDriverIds.has(d.id))
+  }, [dbDrivers, form.date, existing])
 
   const selectedVehicle = dbVehicles.find((v) => v.id === form.vehicleReg)
   const cargoNum = Number(form.cargoKg)
@@ -453,11 +470,15 @@ export default function TripManagement() {
         destination: t.destination,
         vehicleReg: t.vehicle?.registrationNo || t.vehicleId,
         driverName: t.driver?.name || t.driverId,
-        cargoKg: 500, // Mock
+        cargoKg: t.cargoWeight ?? 500,
         distanceKm: t.distance || 0,
         status: t.status === 'SCHEDULED' ? 'Draft' : t.status === 'IN_PROGRESS' ? 'Dispatched' : t.status === 'COMPLETED' ? 'Completed' : 'Cancelled',
         date: t.scheduledDate.substring(0,10),
-        ownedBySelf: (t.driver?.id || t.driverId) === user?.id
+        ownedBySelf: (t.driver?.id || t.driverId) === user?.id,
+        sourceLat: t.sourceLat ?? null,
+        sourceLng: t.sourceLng ?? null,
+        destLat: t.destLat ?? null,
+        destLng: t.destLng ?? null,
       })))
     } catch (err) {
       console.error(err)
@@ -475,6 +496,8 @@ export default function TripManagement() {
   const [panelOpen, setPanelOpen] = useState(false)
   const [completing, setCompleting] = useState<Trip | null>(null)
   const [cancelling, setCancelling] = useState<Trip | null>(null)
+  const [viewingTrip, setViewingTrip] = useState<Trip | null>(null)
+  const canViewMap = role !== 'FINANCIAL_ANALYST'
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -580,7 +603,7 @@ export default function TripManagement() {
             </div>
           ) : (
             <div className="w-full overflow-x-auto">
-              <table className="w-full text-left text-[13px]">
+              <table className="w-full min-w-[840px] text-left text-[13px]">
                 <thead className="bg-slate-50 text-[11.5px] font-semibold uppercase tracking-wider text-slate-500">
                   <tr>
                     <th className="px-4 py-3.5 pl-6 font-medium">Trip ID &amp; Date</th>
@@ -594,7 +617,7 @@ export default function TripManagement() {
                   {rows.map((t) => {
                     const blockers: string[] = [] // Backend handled
                     return (
-                      <tr key={t.id} className="transition hover:bg-slate-50/70">
+                      <tr key={t.id} className={`transition hover:bg-slate-50/70 ${canViewMap ? 'cursor-pointer' : ''}`} onClick={() => canViewMap && setViewingTrip(t)}>
                         <td className="px-4 py-4 pl-6 align-top">
                           <p className="font-mono text-[13.5px] font-semibold text-navy-950">{t.id}</p>
                           <p className="mt-0.5 text-slate-500">{formatTripDate(t.date)}</p>
@@ -624,13 +647,13 @@ export default function TripManagement() {
                           {actsAllowed(t) ? (
                             <div className="flex flex-col items-end gap-1.5">
                               {t.status === 'Draft' && (role === 'ADMIN' || role === 'MANAGER') && (
-                                <button onClick={() => setStatus(t.id, 'Dispatched')} disabled={blockers.length > 0} className="rounded px-2 py-1 text-[12px] font-semibold text-teal-600 transition hover:bg-teal-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent">Dispatch</button>
+                                <button onClick={(e) => { e.stopPropagation(); setStatus(t.id, 'Dispatched') }} disabled={blockers.length > 0} className="rounded px-2 py-1 text-[12px] font-semibold text-teal-600 transition hover:bg-teal-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent">Dispatch</button>
                               )}
                               {t.status === 'Dispatched' && (
-                                <button onClick={() => setCompleting(t)} className="rounded px-2 py-1 text-[12px] font-semibold text-navy-600 transition hover:bg-navy-50">Complete</button>
+                                <button onClick={(e) => { e.stopPropagation(); setCompleting(t) }} className="rounded px-2 py-1 text-[12px] font-semibold text-navy-600 transition hover:bg-navy-50">Complete</button>
                               )}
                               {(t.status === 'Draft' || t.status === 'Dispatched') && (role === 'ADMIN' || role === 'MANAGER') && (
-                                <button onClick={() => setCancelling(t)} className="rounded px-2 py-1 text-[12px] font-semibold text-red-600 transition hover:bg-red-50">Cancel</button>
+                                <button onClick={(e) => { e.stopPropagation(); setCancelling(t) }} className="rounded px-2 py-1 text-[12px] font-semibold text-red-600 transition hover:bg-red-50">Cancel</button>
                               )}
                             </div>
                           ) : (
@@ -670,6 +693,16 @@ export default function TripManagement() {
           <div className="animate-overlay-in absolute inset-0 bg-navy-950/40 backdrop-blur-[1px]" onClick={() => setPanelOpen(false)} />
           <div className="animate-panel-in absolute right-0 top-0 flex h-full w-full max-w-[460px] flex-col bg-white shadow-2xl">
             <CreateTripPanel existing={trips} dbVehicles={dbVehicles} dbDrivers={dbDrivers} user={user} onCancel={() => setPanelOpen(false)} onSave={addTrip} />
+          </div>
+        </div>
+      )}
+
+      {/* trip detail slide-in with route map */}
+      {viewingTrip && (
+        <div className="fixed inset-0 z-40">
+          <div className="animate-overlay-in absolute inset-0 bg-navy-950/40 backdrop-blur-[1px]" onClick={() => setViewingTrip(null)} />
+          <div className="animate-panel-in absolute right-0 top-0 flex h-full w-full max-w-[480px] flex-col bg-white shadow-2xl">
+            <TripDetailPanel trip={viewingTrip} onClose={() => setViewingTrip(null)} />
           </div>
         </div>
       )}

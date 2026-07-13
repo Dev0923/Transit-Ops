@@ -35,6 +35,13 @@ import {
   type Kpi,
 } from './data'
 
+const formatLargeCurrency = (n: number) => {
+  if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)}Cr`
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`
+  return `₹${n.toFixed(0)}`
+}
+
 /* --------------------------------------------------------------- */
 
 const accentMap: Record<Kpi['accent'], { fg: string; bg: string }> = {
@@ -404,8 +411,8 @@ function FinancialAnalystDashboard({ user }: { user: any }) {
                   </span>
                   <TrendPill trend={Number(data?.costTrend?.toFixed(1) || 0)} good={false} />
                 </div>
-                <p className="text-[28px] font-bold text-navy-950">₹{data?.totalOperationalCost?.toLocaleString('en-IN')}</p>
-                <p className="mt-2 text-[12.5px] font-medium text-slate-500">Total Operational Cost</p>
+                <p className="text-[28px] font-bold text-navy-950 truncate" title={String(data?.totalOperationalCost || 0)}>{formatLargeCurrency(data?.totalOperationalCost || 0)}</p>
+                <p className="mt-2 text-[12.5px] font-medium text-slate-500 truncate" title="Total Operational Cost">Total Operational Cost</p>
               </div>
 
               <div className="group rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-navy-900/[0.04] transition hover:-translate-y-0.5 hover:shadow-md">
@@ -414,8 +421,8 @@ function FinancialAnalystDashboard({ user }: { user: any }) {
                     <FuelIcon className="h-5 w-5" />
                   </span>
                 </div>
-                <p className="text-[28px] font-bold text-navy-950">₹{data?.avgFuelCost?.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                <p className="mt-2 text-[12.5px] font-medium text-slate-500">Avg Fuel Cost / Vehicle</p>
+                <p className="text-[28px] font-bold text-navy-950 truncate" title={String(data?.avgFuelCost || 0)}>{formatLargeCurrency(data?.avgFuelCost || 0)}</p>
+                <p className="mt-2 text-[12.5px] font-medium text-slate-500 truncate" title="Avg Fuel Cost / Vehicle">Avg Fuel Cost / Vehicle</p>
               </div>
 
               <div className="group rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-navy-900/[0.04] transition hover:-translate-y-0.5 hover:shadow-md">
@@ -424,8 +431,8 @@ function FinancialAnalystDashboard({ user }: { user: any }) {
                     <RouteIcon className="h-5 w-5" />
                   </span>
                 </div>
-                <p className={`text-[28px] font-bold ${data?.averageROI >= 0 ? 'text-teal-600' : 'text-red-600'}`}>{data?.averageROI?.toFixed(2)}%</p>
-                <p className="mt-2 text-[12.5px] font-medium text-slate-500">Avg Vehicle ROI</p>
+                <p className={`text-[28px] font-bold truncate ${data?.averageROI >= 0 ? 'text-teal-600' : 'text-red-600'}`} title={String((data?.averageROI || 0).toFixed(2)) + '%'}>{(data?.averageROI || 0).toFixed(2)}%</p>
+                <p className="mt-2 text-[12.5px] font-medium text-slate-500 truncate" title="Avg Vehicle ROI">Avg Vehicle ROI</p>
               </div>
 
               <div className="group rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-navy-900/[0.04] transition hover:-translate-y-0.5 hover:shadow-md">
@@ -434,8 +441,8 @@ function FinancialAnalystDashboard({ user }: { user: any }) {
                     <GaugeIcon className="h-5 w-5" />
                   </span>
                 </div>
-                <p className="text-[28px] font-bold text-navy-950">{data?.fleetUtilization?.toFixed(1)}%</p>
-                <p className="mt-2 text-[12.5px] font-medium text-slate-500">Fleet Utilization</p>
+                <p className="text-[28px] font-bold text-navy-950 truncate" title={String((data?.fleetUtilization || 0).toFixed(1)) + '%'}>{(data?.fleetUtilization || 0).toFixed(1)}%</p>
+                <p className="mt-2 text-[12.5px] font-medium text-slate-500 truncate" title="Fleet Utilization">Fleet Utilization</p>
               </div>
             </div>
 
@@ -638,7 +645,7 @@ function SafetyOfficerDashboard({ user }: { user: any }) {
                  </div>
                ) : (
                  <div className="overflow-x-auto">
-                   <table className="w-full text-left text-[13px]">
+                   <table className="w-full min-w-[600px] text-left text-[13px]">
                      <thead>
                        <tr className="border-b border-slate-200 text-slate-500">
                          <th className="pb-2 font-medium">Driver Name</th>
@@ -790,11 +797,12 @@ function AdminManagerDashboard({ user }: { user: any }) {
     { key: 'active_trips', label: 'Active Trips', value: data?.activeTrips?.toLocaleString('en-IN') || '0', trend: 4.8, icon: RouteIcon, roles: ['ADMIN', 'MANAGER', 'DRIVER'], accent: 'navy' as const },
     { key: 'pending_trips', label: 'Pending Trips', value: data?.pendingTrips?.toLocaleString('en-IN') || '0', trend: -2.3, trendGood: false, icon: ClockIcon, roles: ['ADMIN', 'MANAGER', 'DRIVER'], accent: 'amber' as const },
     { key: 'drivers_on_duty', label: 'Drivers On Duty', value: data?.driversOnDuty?.toLocaleString('en-IN') || '0', trend: 2.0, icon: UsersIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' as const },
-    { key: 'utilization', label: 'Fleet Utilization', value: `${data?.fleetUtilization || 0}%`, trend: 5.2, icon: GaugeIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' as const },
-    { key: 'fuel_cost', label: 'Monthly Fuel & Expenses', value: `₹${((data?.fuelCost || 0) / 1000).toFixed(1)}K`, trend: -4.1, trendGood: false, icon: FuelIcon, roles: ['ADMIN', 'MANAGER'], accent: 'navy' as const },
-    { key: 'maint_spend', label: 'Maintenance Spend', value: `₹${((data?.maintCost || 0) / 1000).toFixed(1)}K`, trend: 2.7, trendGood: false, icon: WrenchIcon, roles: ['ADMIN', 'MANAGER'], accent: 'amber' as const },
-    { key: 'cost_per_km', label: 'Cost per Km', value: `₹${data?.costPerKm || 0}`, trend: -1.8, icon: CoinIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' as const },
+    { key: 'utilization', label: 'Fleet Utilization', value: `${(data?.fleetUtilization || 0).toFixed(1)}%`, trend: 5.2, icon: GaugeIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' as const },
+    { key: 'fuel_cost', label: 'Monthly Fuel & Expenses', value: formatLargeCurrency(data?.fuelCost || 0), trend: -4.1, trendGood: false, icon: FuelIcon, roles: ['ADMIN', 'MANAGER'], accent: 'navy' as const },
+    { key: 'maint_spend', label: 'Maintenance Spend', value: formatLargeCurrency(data?.maintCost || 0), trend: 2.7, trendGood: false, icon: WrenchIcon, roles: ['ADMIN', 'MANAGER'], accent: 'amber' as const },
+    { key: 'cost_per_km', label: 'Cost per Km', value: `₹${(data?.costPerKm || 0).toFixed(2)}`, trend: -1.8, icon: CoinIcon, roles: ['ADMIN', 'MANAGER'], accent: 'teal' as const },
   ].filter(k => k.roles.includes(role))
+
 
   return (
     <div className="font-sans text-navy-950">
@@ -842,8 +850,8 @@ function AdminManagerDashboard({ user }: { user: any }) {
                       </span>
                       <TrendPill trend={k.trend} good={k.trendGood ?? true} />
                     </div>
-                    <p className="text-[28px] font-bold leading-none tracking-tight text-navy-950">{k.value}</p>
-                    <p className="mt-2 text-[12.5px] font-medium text-slate-500">{k.label}</p>
+                    <p className="text-[28px] font-bold leading-none tracking-tight text-navy-950 truncate" title={String(k.value)}>{k.value}</p>
+                    <p className="mt-2 text-[12.5px] font-medium text-slate-500 truncate" title={k.label}>{k.label}</p>
                   </div>
                 )
               })}
