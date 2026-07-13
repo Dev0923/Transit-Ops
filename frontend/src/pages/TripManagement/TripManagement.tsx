@@ -3,6 +3,7 @@ import useAuth from '../../hooks/useAuth'
 import { tripService } from '../../services/tripService'
 import { vehicleService } from '../../services/vehicleService'
 import { driverService } from '../../services/driverService'
+import { sortVehiclesForSmartMatch, sortDriversForSmartMatch } from '../../utils/smartMatch'
 import TripDetailPanel from '../../components/TripDetailPanel'
 import {
   SearchIcon,
@@ -144,6 +145,12 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
     return dbDrivers.filter((d) => d.isActive && !busyDriverIds.has(d.id))
   }, [dbDrivers, form.date, existing])
 
+  const smartVehicles = useMemo(() => sortVehiclesForSmartMatch(availableVehicles, form.cargoKg), [availableVehicles, form.cargoKg])
+  const smartDrivers = useMemo(() => {
+    if (!form.vehicleReg) return availableDrivers;
+    return sortDriversForSmartMatch(availableDrivers);
+  }, [availableDrivers, form.vehicleReg])
+
   const selectedVehicle = dbVehicles.find((v) => v.id === form.vehicleReg)
   const cargoNum = Number(form.cargoKg)
   const capacity = selectedVehicle?.capacity || 5000 // Fallback if missing
@@ -254,11 +261,15 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
               className={`h-11 w-full appearance-none rounded-lg border px-3.5 pr-9 text-[14px] outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-500/15 ${err('vehicleReg') ? 'border-red-400' : 'border-slate-300 hover:border-slate-400'} ${form.vehicleReg ? 'text-navy-950' : 'text-slate-400'}`}
             >
               <option value="">Select a vehicle…</option>
-              {availableVehicles.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.registrationNo || v.reg} — {v.type} ({v.make} {v.model}) - {v.capacity ? v.capacity.toLocaleString('en-IN') : '5,000'} kg
-                </option>
-              ))}
+              {smartVehicles.map((v, i) => {
+                const isTopMatch = i === 0 && form.cargoKg && Number(form.cargoKg) > 0;
+                return (
+                  <option key={v.id} value={v.id}>
+                    {v.registrationNo || v.reg} — {v.type} ({v.make} {v.model}) - {v.capacity ? v.capacity.toLocaleString('en-IN') : '5,000'} kg
+                    {isTopMatch ? ' ⭐ Best Fit' : ''}
+                  </option>
+                )
+              })}
             </select>
             <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           </div>
@@ -274,11 +285,14 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
                 className={`h-11 w-full appearance-none rounded-lg border px-3.5 pr-9 text-[14px] outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-500/15 ${err('driverName') ? 'border-red-400' : 'border-slate-300 hover:border-slate-400'} ${form.driverName ? 'text-navy-950' : 'text-slate-400'}`}
               >
                 <option value="">Select a driver…</option>
-                {availableDrivers.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
+                {smartDrivers.map((d, i) => {
+                  const isTopMatch = i === 0 && form.vehicleReg;
+                  return (
+                    <option key={d.id} value={d.id}>
+                      {d.name} {isTopMatch ? ' ⭐ Recommended' : ''}
+                    </option>
+                  )
+                })}
               </select>
               <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
