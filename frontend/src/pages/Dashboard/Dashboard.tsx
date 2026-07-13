@@ -53,7 +53,7 @@ const accentMap: Record<Kpi['accent'], { fg: string; bg: string }> = {
 
 function RoleChip({ roles }: { roles: RoleId[] }) {
   return (
-    <span className="rounded-full bg-navy-50 px-2 py-0.5 font-mono text-[10px] font-medium tracking-tight text-navy-600">
+    <span className="rounded-full bg-navy-50 dark:bg-navy-800 px-2 py-0.5 font-mono text-[10px] font-medium tracking-tight text-navy-600 dark:text-navy-300">
       {roleTag(roles)}
     </span>
   )
@@ -73,10 +73,10 @@ function Card({
   action?: ReactNode
 }) {
   return (
-    <section className={`rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-navy-900/[0.04] ${className}`}>
+    <section className={`rounded-xl border border-slate-200/80 dark:border-navy-700 bg-white dark:bg-navy-800 p-5 shadow-sm shadow-navy-900/[0.04] dark:shadow-black/20 ${className}`}>
       {(title || roles) && (
         <header className="mb-4 flex items-center justify-between gap-3">
-          <h3 className="text-[14px] font-semibold text-navy-900">{title}</h3>
+          <h3 className="text-[14px] font-semibold text-navy-900 dark:text-white">{title}</h3>
           <div className="flex items-center gap-2">
             {action}
             {roles && <RoleChip roles={roles} />}
@@ -94,7 +94,7 @@ function TrendPill({ trend, good = true }: { trend: number; good?: boolean }) {
   return (
     <span
       className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${
-        isGood ? 'bg-teal-50 text-teal-700' : 'bg-red-50 text-red-600'
+        isGood ? 'bg-teal-50 dark:bg-teal-900/40 text-teal-700 dark:text-teal-400' : 'bg-red-50 dark:bg-red-900/40 text-red-600 dark:text-red-400'
       }`}
     >
       <span className="text-[9px]">{positive ? '▲' : '▼'}</span>
@@ -116,12 +116,12 @@ function Select({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[11px] font-medium text-slate-500">{label}</span>
+      <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{label}</span>
       <div className="relative">
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-9 w-full appearance-none rounded-lg border border-slate-300 bg-white pl-3 pr-8 text-[13px] font-medium text-navy-900 outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-500/15 sm:w-40"
+          className="h-9 w-full appearance-none rounded-lg border border-slate-300 dark:border-navy-600 bg-white dark:bg-navy-800 pl-3 pr-8 text-[13px] font-medium text-navy-900 dark:text-white outline-none transition hover:border-slate-400 dark:hover:border-navy-500 focus:border-teal-600 focus:ring-4 focus:ring-teal-500/15 sm:w-40"
         >
           {options.map((o) => (
             <option key={o}>{o}</option>
@@ -136,13 +136,13 @@ function Select({
 function ChartTooltip({ active, payload, label, unit = '' }: any) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12px] shadow-lg">
-      <p className="mb-1 font-semibold text-navy-900">{label}</p>
+    <div className="rounded-lg border border-slate-200 dark:border-navy-600 bg-white dark:bg-navy-800 px-3 py-2 text-[12px] shadow-lg dark:shadow-black/20">
+      <p className="mb-1 font-semibold text-navy-900 dark:text-white">{label}</p>
       {payload.map((p: any) => (
-        <p key={p.name} className="flex items-center gap-1.5 text-slate-600">
+        <p key={p.name} className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
           <span className="h-2 w-2 rounded-full" style={{ background: p.color || p.fill }} />
           <span className="capitalize">{p.name}:</span>
-          <span className="font-semibold text-navy-900">
+          <span className="font-semibold text-navy-900 dark:text-white">
             {p.value}
             {unit}
           </span>
@@ -805,8 +805,8 @@ function AdminManagerDashboard({ user }: { user: any }) {
 
 
   return (
-    <div className="font-sans text-navy-950">
-      <div className="border-b border-slate-200 bg-white">
+    <div className="font-sans text-navy-950 dark:text-slate-200">
+      <div className="border-b border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-900">
         <div className="mx-auto flex max-w-[1440px] flex-wrap items-end gap-3 px-4 py-3 sm:px-6">
           <Select
             label="Vehicle Type"
@@ -826,8 +826,8 @@ function AdminManagerDashboard({ user }: { user: any }) {
             onChange={setRegion}
             options={['All Regions', 'Region A', 'Region B', 'Region C', 'Region D']}
           />
-          <p className="ml-auto self-center text-[12px] text-slate-400">
-            Viewing as <span className="font-semibold text-navy-700">{ROLE_LABEL[role]}</span> · sections adapt to role
+          <p className="ml-auto self-center text-[12px] text-slate-400 dark:text-slate-500">
+            Viewing as <span className="font-semibold text-navy-700 dark:text-navy-300">{ROLE_LABEL[role]}</span> · sections adapt to role
           </p>
         </div>
       </div>
@@ -842,7 +842,7 @@ function AdminManagerDashboard({ user }: { user: any }) {
                 return (
                   <div
                     key={k.key}
-                    className="group rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-navy-900/[0.04] transition hover:-translate-y-0.5 hover:shadow-md hover:shadow-navy-900/[0.08]"
+                    className="group rounded-xl border border-slate-200/80 dark:border-navy-700 bg-white dark:bg-navy-800 p-5 shadow-sm shadow-navy-900/[0.04] dark:shadow-black/20 transition hover:-translate-y-0.5 hover:shadow-md hover:shadow-navy-900/[0.08] dark:hover:shadow-black/40"
                   >
                     <div className="mb-3 flex items-center justify-between">
                       <span className={`grid h-9 w-9 place-items-center rounded-lg ${a.bg} ${a.fg}`}>
@@ -850,8 +850,8 @@ function AdminManagerDashboard({ user }: { user: any }) {
                       </span>
                       <TrendPill trend={k.trend} good={k.trendGood ?? true} />
                     </div>
-                    <p className="text-[28px] font-bold leading-none tracking-tight text-navy-950 truncate" title={String(k.value)}>{k.value}</p>
-                    <p className="mt-2 text-[12.5px] font-medium text-slate-500 truncate" title={k.label}>{k.label}</p>
+                    <p className="text-[28px] font-bold leading-none tracking-tight text-navy-950 dark:text-white truncate" title={String(k.value)}>{k.value}</p>
+                    <p className="mt-2 text-[12.5px] font-medium text-slate-500 dark:text-slate-400 truncate" title={k.label}>{k.label}</p>
                   </div>
                 )
               })}
@@ -919,8 +919,8 @@ function AdminManagerDashboard({ user }: { user: any }) {
                       {(data?.vehicleStatus || []).map((s: any) => (
                         <li key={s.name} className="flex items-center gap-2 text-[13px]">
                           <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
-                          <span className="text-slate-600">{s.name}</span>
-                          <span className="ml-auto font-semibold text-navy-900">{s.value}</span>
+                          <span className="text-slate-600 dark:text-slate-400">{s.name}</span>
+                          <span className="ml-auto font-semibold text-navy-900 dark:text-white">{s.value}</span>
                         </li>
                       ))}
                     </ul>
@@ -953,11 +953,11 @@ function AdminManagerDashboard({ user }: { user: any }) {
                       const tone = d.score >= 90 ? '#0d9488' : d.score >= 75 ? '#f59e0b' : '#ef4444'
                       return (
                         <li key={d.name} className="flex items-center gap-3 text-[13px]">
-                          <span className="w-28 shrink-0 truncate text-slate-600">{d.name}</span>
-                          <span className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                          <span className="w-28 shrink-0 truncate text-slate-600 dark:text-slate-400">{d.name}</span>
+                          <span className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-navy-900">
                             <span className="block h-full rounded-full" style={{ width: `${d.score}%`, background: tone }} />
                           </span>
-                          <span className="w-8 text-right font-semibold text-navy-900">{d.score}</span>
+                          <span className="w-8 text-right font-semibold text-navy-900 dark:text-white">{d.score}</span>
                         </li>
                       )
                     })}
@@ -967,13 +967,13 @@ function AdminManagerDashboard({ user }: { user: any }) {
                 <Card title="Driver Compliance" roles={['ADMIN', 'MANAGER']} action={<ShieldIcon className="h-4 w-4 text-teal-600" />}>
                   <div className="grid grid-cols-2 gap-4">
                     {(data?.compliance || []).map((c: any) => (
-                      <div key={c.label} className="rounded-lg bg-navy-50/60 p-3">
+                      <div key={c.label} className="rounded-lg bg-navy-50/60 dark:bg-navy-900/40 p-3">
                         <div className="flex items-baseline gap-1">
-                          <span className="text-[22px] font-bold text-navy-900">{c.value}</span>
-                          <span className="text-[12px] font-semibold text-slate-400">%</span>
+                          <span className="text-[22px] font-bold text-navy-900 dark:text-white">{c.value}</span>
+                          <span className="text-[12px] font-semibold text-slate-400 dark:text-slate-500">%</span>
                         </div>
-                        <p className="mt-0.5 text-[12px] text-slate-500">{c.label}</p>
-                        <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-slate-200">
+                        <p className="mt-0.5 text-[12px] text-slate-500 dark:text-slate-400">{c.label}</p>
+                        <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-navy-900">
                           <span
                             className="block h-full rounded-full bg-teal-600"
                             style={{ width: `${c.value}%` }}
@@ -992,13 +992,13 @@ function AdminManagerDashboard({ user }: { user: any }) {
                 const conf = activityIcon[ev.type]
                 const Icon = conf.icon
                 return (
-                  <li key={ev.id} className="flex gap-3 rounded-lg p-2 transition hover:bg-slate-50">
-                    <span className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg ${conf.cls}`}>
+                  <li key={ev.id} className="flex gap-3 rounded-lg p-2 transition hover:bg-slate-50 dark:hover:bg-navy-800">
+                    <span className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg ${conf.cls} dark:opacity-80`}>
                       <Icon className="h-4 w-4" />
                     </span>
                     <span className="min-w-0">
-                      <span className="block text-[12.5px] leading-snug text-navy-800">{ev.text}</span>
-                      <span className="mt-0.5 block text-[11px] text-slate-400">{new Date(ev.time).toLocaleString()}</span>
+                      <span className="block text-[12.5px] leading-snug text-navy-800 dark:text-slate-200">{ev.text}</span>
+                      <span className="mt-0.5 block text-[11px] text-slate-400 dark:text-slate-500">{new Date(ev.time).toLocaleString()}</span>
                     </span>
                   </li>
                 )

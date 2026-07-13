@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Moon, Sun } from 'lucide-react'
 import { Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import useAuth from '../../hooks/useAuth'
 import {
@@ -53,7 +54,7 @@ export default function AppShell() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f7fa]">
+    <div className="min-h-screen bg-[#f5f7fa] dark:bg-navy-950">
       {/* ── Desktop sidebar ─────────────────────────────────────────── */}
       <aside
         className={`fixed inset-y-0 left-0 z-30 hidden flex-col bg-navy-900 text-slate-300 transition-[width] duration-200 md:flex ${
@@ -261,24 +262,46 @@ function Header({
   const [menuOpen, setMenuOpen] = useState(false)
   const displayUser = { name: user?.name || 'User', label: user?.role || 'Role' }
 
+  const [isDark, setIsDark] = useState(() => {
+    return localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  })
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark')
+      localStorage.theme = 'dark'
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.theme = 'light'
+    }
+  }, [isDark])
+
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-slate-200 dark:border-navy-800 bg-white/90 dark:bg-navy-900/90 backdrop-blur">
       <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
         <button
           onClick={onOpenDrawer}
-          className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-navy-800 md:hidden"
+          className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 dark:text-slate-400 transition hover:bg-slate-100 dark:hover:bg-navy-800 hover:text-navy-800 dark:hover:text-white md:hidden"
         >
           <MenuIcon className="h-5 w-5" />
         </button>
 
         {/* breadcrumb / title */}
         <div className="min-w-0 leading-tight">
-          <p className="hidden text-[11px] font-medium text-slate-400 sm:block">TransitOps</p>
-          <h1 className="truncate text-[15px] font-semibold text-navy-900">{PAGE_TITLE[page]}</h1>
+          <p className="hidden text-[11px] font-medium text-slate-400 dark:text-slate-500 sm:block">TransitOps</p>
+          <h1 className="truncate text-[15px] font-semibold text-navy-900 dark:text-white">{PAGE_TITLE[page]}</h1>
         </div>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <button className="relative grid h-9 w-9 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-navy-800">
+          <button 
+            onClick={() => setIsDark(!isDark)}
+            className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 dark:text-slate-400 transition hover:bg-slate-100 dark:hover:bg-navy-800 hover:text-navy-800 dark:hover:text-white"
+            title="Toggle Theme"
+          >
+            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </button>
+
+          <button className="relative grid h-9 w-9 place-items-center rounded-lg text-slate-500 dark:text-slate-400 transition hover:bg-slate-100 dark:hover:bg-navy-800 hover:text-navy-800 dark:hover:text-white">
             <BellIcon className="h-5 w-5" />
             <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
               5
@@ -288,14 +311,14 @@ function Header({
           <div className="relative">
             <button
               onClick={() => setMenuOpen((o) => !o)}
-              className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white py-1.5 pl-1.5 pr-2.5 transition hover:border-slate-300 hover:bg-slate-50"
+              className="flex items-center gap-2.5 rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-800 py-1.5 pl-1.5 pr-2.5 transition hover:border-slate-300 dark:hover:border-navy-600 hover:bg-slate-50 dark:hover:bg-navy-700"
             >
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-navy-800 text-[13px] font-semibold text-white">
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-navy-800 dark:bg-navy-900 text-[13px] font-semibold text-white">
                 {displayUser.name.split(' ').map((n) => n[0]).join('')}
               </span>
               <span className="hidden text-left leading-tight sm:block">
-                <span className="block text-[13px] font-semibold text-navy-900">{displayUser.name}</span>
-                <span className="block text-[11px] text-teal-700">{displayUser.label}</span>
+                <span className="block text-[13px] font-semibold text-navy-900 dark:text-white">{displayUser.name}</span>
+                <span className="block text-[11px] text-teal-700 dark:text-teal-400">{displayUser.label}</span>
               </span>
               <ChevronDownIcon className={`h-4 w-4 text-slate-400 transition ${menuOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -303,9 +326,9 @@ function Header({
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                <div className="animate-form-in absolute right-0 z-20 mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl shadow-navy-900/10">
+                <div className="animate-form-in absolute right-0 z-20 mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-800 shadow-xl shadow-navy-900/10 dark:shadow-black/20">
                   <div className="py-1">
-                    <button className="flex w-full items-center gap-2.5 px-3 py-2.5 text-[13px] text-slate-600 transition hover:bg-slate-50">
+                    <button className="flex w-full items-center gap-2.5 px-3 py-2.5 text-[13px] text-slate-600 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-navy-700">
                       <SettingsIcon className="h-4 w-4" /> Settings
                     </button>
                     <button
@@ -313,7 +336,7 @@ function Header({
                         setMenuOpen(false)
                         onLogout?.()
                       }}
-                      className="flex w-full items-center gap-2.5 px-3 py-2.5 text-[13px] text-red-600 transition hover:bg-red-50"
+                      className="flex w-full items-center gap-2.5 px-3 py-2.5 text-[13px] text-red-600 dark:text-red-400 transition hover:bg-red-50 dark:hover:bg-red-500/10"
                     >
                       <LogoutIcon className="h-4 w-4" /> Log out
                     </button>

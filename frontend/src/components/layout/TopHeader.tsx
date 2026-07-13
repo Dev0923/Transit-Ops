@@ -1,8 +1,23 @@
-import { Menu, LogOut, Bell } from "lucide-react";
+import { Menu, LogOut, Bell, Moon, Sun } from "lucide-react";
+import { useState, useEffect } from "react";
 import useAuth from "../../hooks/useAuth";
 
 export default function TopHeader({ onMenuClick }) {
   const { user, logout } = useAuth();
+
+  const [isDark, setIsDark] = useState(() => {
+    return localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.theme = 'dark';
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.theme = 'light';
+    }
+  }, [isDark]);
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-white/80 backdrop-blur-md border-b border-surface-200 flex items-center justify-between px-4 lg:px-6">
@@ -18,6 +33,14 @@ export default function TopHeader({ onMenuClick }) {
 
       {/* Right — actions */}
       <div className="flex items-center gap-3">
+        <button
+          onClick={() => setIsDark(!isDark)}
+          className="p-2 rounded-lg text-surface-700 hover:bg-surface-100 transition"
+          title="Toggle Theme"
+        >
+          {isDark ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+
         <button className="relative p-2 rounded-lg text-surface-700 hover:bg-surface-100 transition">
           <Bell size={18} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
