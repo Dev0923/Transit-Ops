@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { tripService } from '../../services/tripService'
 import { dashboardService } from '../../services/dashboardService'
+import { maintenanceService } from '../../services/maintenanceService'
 import {
   ResponsiveContainer,
   XAxis,
@@ -771,11 +772,17 @@ function AdminManagerDashboard({ user }: { user: any }) {
   const [status, setStatus] = useState('All Statuses')
   const [region, setRegion] = useState('All Regions')
 
+  const [riskScores, setRiskScores] = useState<any[]>([])
+
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await dashboardService.getAdmin()
-        setData(res.data)
+        const [dashRes, riskRes] = await Promise.all([
+          dashboardService.getAdmin(),
+          maintenanceService.getRiskScores(),
+        ])
+        setData(dashRes.data)
+        setRiskScores(riskRes.data || [])
       } catch (err) {
         console.error(err)
       } finally {
@@ -786,6 +793,10 @@ function AdminManagerDashboard({ user }: { user: any }) {
   }, [])
 
   const actions = useMemo(() => quickActions.filter((a) => a.roles.includes(role)), [role])
+
+  const highRisk = riskScores.filter((v: any) => v.riskBand === 'High')
+  const mediumRisk = riskScores.filter((v: any) => v.riskBand === 'Medium')
+  const topRiskVehicles = riskScores.slice(0, 5)
 
   if (loading && !data) return <div className="p-8 text-center text-slate-500">Loading your dashboard...</div>
 
@@ -879,6 +890,85 @@ function AdminManagerDashboard({ user }: { user: any }) {
                 </div>
               </Card>
             )}
+
+            {/* ── 🔧 Maintenance Risk Alerts ──────────────────────── */}
+            <Card title="🔧 Maintenance Risk Alerts" roles={['ADMIN', 'MANAGER']}>
+              {highRisk.length === 0 && mediumRisk.length === 0 ? (
+                <div className="flex items-center gap-3 rounded-lg bg-teal-50 dark:bg-teal-900/30 p-4">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-teal-100 dark:bg-teal-800 text-teal-600 dark:text-teal-400">
+                    <ShieldIcon className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-[14px] font-semibold text-teal-800 dark:text-teal-300">All vehicles are currently low risk ✅</p>
+                    <p className="text-[12px] text-teal-600 dark:text-teal-400">No vehicles require urgent maintenance attention.</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-4 flex flex-wrap gap-3">
+                    {highRisk.length > 0 && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 dark:bg-red-900/30 px-3 py-1.5 text-[13px] font-semibold text-red-700 dark:text-red-400 ring-1 ring-inset ring-red-200 dark:ring-red-800">
+                        <span className="h-2 w-2 rounded-full bg-red-500" />
+                        {highRisk.length} High Risk
+                      </span>
+                    )}
+                    {mediumRisk.length > 0 && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 dark:bg-amber-900/30 px-3 py-1.5 text-[13px] font-semibold text-amber-700 dark:text-amber-400 ring-1 ring-inset ring-amber-200 dark:ring-amber-800">
+                        <span className="h-2 w-2 rounded-full bg-amber-500" />
+                        {mediumRisk.length} Medium Risk
+                      </span>
+                    )}
+                  </div>
+
+                  <ul className="space-y-2">
+                    {topRiskVehicles.map((v: any) => {
+                      const bandColor =
+                        v.riskBand === 'High'
+                          ? 'bg-red-500'
+                          : v.riskBand === 'Medium'
+                          ? 'bg-amber-500'
+                          : 'bg-emerald-500'
+                      const bandTextColor =
+                        v.riskBand === 'High'
+                          ? 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 ring-red-200 dark:ring-red-800'
+                          : v.riskBand === 'Medium'
+                          ? 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 ring-amber-200 dark:ring-amber-800'
+                          : 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 ring-emerald-200 dark:ring-emerald-800'
+                      return (
+                        <li
+                          key={v.vehicleId}
+                          className="flex items-center gap-3 rounded-lg border border-slate-100 dark:border-navy-700 p-3 transition hover:bg-slate-50 dark:hover:bg-navy-700/50"
+                        >
+                          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${bandColor}`} />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[13px] font-semibold text-navy-900 dark:text-white">
+                              {v.registrationNo}
+                            </span>
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                              {v.make} {v.model}
+                            </span>
+                          </span>
+                          <span className="text-[18px] font-bold tabular-nums text-navy-900 dark:text-white">
+                            {v.riskScore}
+                          </span>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${bandTextColor}`}
+                          >
+                            {v.riskBand}
+                          </span>
+                          <button
+                            onClick={() => navigate('/vehicles')}
+                            className="shrink-0 text-[12px] font-semibold text-teal-700 dark:text-teal-400 transition hover:text-teal-900 dark:hover:text-teal-300"
+                          >
+                            View →
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </>
+              )}
+            </Card>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <Card title="Fleet Utilization — Last 30 Days" roles={['ADMIN', 'MANAGER']} className="lg:col-span-2">

@@ -1,5 +1,6 @@
 const prisma = require("../config/db");
 const permissions = require("../config/permissions");
+const { getAllVehicleRisks } = require("../services/maintenanceRiskService");
 
 // Helper to strip cost
 function stripCost(log, role) {
@@ -102,4 +103,14 @@ async function remove(req, res, next) {
   }
 }
 
-module.exports = { getAll, getById, create, update, remove };
+// GET /api/maintenance/risk-scores
+async function getRiskScores(req, res, next) {
+  try {
+    const scores = await getAllVehicleRisks();
+    res.json(scores);
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getAll, getById, create, update, remove, getRiskScores };

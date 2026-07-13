@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, type ReactNode } from 'react'
 import useAuth from '../../hooks/useAuth'
 import { vehicleService } from '../../services/vehicleService'
+import { maintenanceService } from '../../services/maintenanceService'
 import {
   SearchIcon,
   PlusIcon,
@@ -357,9 +358,67 @@ function VehicleForm({
   )
 }
 
+/* ---------------- Risk Badge ---------------- */
+
+function RiskBadge({ band }: { band: string }) {
+  const cls =
+    band === 'High'
+      ? 'bg-red-50 text-red-700 ring-red-200'
+      : band === 'Medium'
+      ? 'bg-amber-50 text-amber-700 ring-amber-200'
+      : 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold ring-1 ring-inset ${cls}`}>
+      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+      {band}
+    </span>
+  )
+}
+
+function RiskBreakdown({ factors }: { factors: any }) {
+  if (!factors) return null
+  const items = [
+    factors.odometerSinceService,
+    factors.daysSinceService,
+    factors.tripFrequency,
+    factors.pastMaintenance,
+  ]
+  return (
+    <section>
+      <h3 className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-navy-900">
+        <AlertIcon className="h-4 w-4 text-amber-600" /> Maintenance Risk Breakdown
+      </h3>
+      <div className="space-y-3 rounded-lg border border-slate-200 p-4">
+        {items.map((f: any) => {
+          const tone =
+            f.factor >= 71
+              ? 'bg-red-500'
+              : f.factor >= 41
+              ? 'bg-amber-500'
+              : 'bg-emerald-500'
+          return (
+            <div key={f.label}>
+              <div className="mb-1 flex items-center justify-between text-[12px]">
+                <span className="text-slate-600">{f.label}</span>
+                <span className="font-semibold text-navy-900">{f.factor}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className={`h-full rounded-full transition-all ${tone}`}
+                  style={{ width: `${f.factor}%` }}
+                />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 /* ---------------- Detail panel ---------------- */
 
-function DetailPanel({ vehicle, onClose, canSeeCost }: { vehicle: Vehicle; onClose: () => void; canSeeCost: boolean }) {
+function DetailPanel({ vehicle, onClose, canSeeCost, riskData }: { vehicle: Vehicle; onClose: () => void; canSeeCost: boolean; riskData?: any }) {
   const totalMaint = maintHistory.reduce((s, m) => s + m.cost, 0)
   const opsCost = vehicle.costInr + totalMaint
 
@@ -430,6 +489,8 @@ function DetailPanel({ vehicle, onClose, canSeeCost }: { vehicle: Vehicle; onClo
             ))}
           </ul>
         </section>
+
+        {riskData && <RiskBreakdown factors={riskData.factors} />}
       </div>
     </div>
   )
@@ -462,12 +523,29 @@ export default function VehicleRegistry() {
     }
   }
 
+  const [riskMap, setRiskMap] = useState<Record<string, any>>({})
+
+  const fetchRiskScores = async () => {
+    try {
+      const res = await maintenanceService.getRiskScores()
+      const map: Record<string, any> = {}
+      for (const r of res.data) {
+        map[r.registrationNo] = r
+      }
+      setRiskMap(map)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   useEffect(() => {
     fetchVehicles()
+    fetchRiskScores()
   }, [])
   const [query, setQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState('All')
   const [statusFilter, setStatusFilter] = useState('All')
+  const [riskFilter, setRiskFilter] = useState('All')
   const [sort, setSort] = useState<SortKey>('reg')
   const [page, setPage] = useState(1)
   const [panel, setPanel] = useState<Panel>(null)
@@ -479,12 +557,17 @@ export default function VehicleRegistry() {
       .filter((v) => (q ? v.reg.toLowerCase().includes(q) || v.model.toLowerCase().includes(q) : true))
       .filter((v) => (typeFilter === 'All' ? true : v.type === typeFilter))
       .filter((v) => (statusFilter === 'All' ? true : v.status === statusFilter))
+      .filter((v) => {
+        if (riskFilter === 'All') return true
+        const r = riskMap[v.reg]
+        return r?.riskBand === riskFilter
+      })
       .sort((a, b) => {
         if (sort === 'reg') return a.reg.localeCompare(b.reg)
         if (sort === 'status') return rank[a.status] - rank[b.status]
         return (b[sort] as number) - (a[sort] as number)
       })
-  }, [vehicles, query, typeFilter, statusFilter, sort])
+  }, [vehicles, query, typeFilter, statusFilter, riskFilter, sort, riskMap])
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const current = Math.min(page, pageCount)
@@ -590,6 +673,15 @@ export default function VehicleRegistry() {
             options={['All', ...VEHICLE_STATUSES]}
           />
           <Dropdown
+            label="Risk Level"
+            value={riskFilter}
+            onChange={(v) => {
+              setRiskFilter(v)
+              resetPage()
+            }}
+            options={['All', 'High', 'Medium', 'Low']}
+          />
+          <Dropdown
             label="Sort by"
             value={SORTS.find((s) => s.key === sort)!.label}
             onChange={(label) => setSort(SORTS.find((s) => s.label === label)!.key)}
@@ -627,6 +719,7 @@ export default function VehicleRegistry() {
                       </th>
                     )}
                     <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Risk</th>
                     {canEdit && <th className="sticky right-0 z-10 bg-slate-50 px-4 py-3 text-right">Actions</th>}
                   </tr>
                 </thead>
@@ -661,6 +754,13 @@ export default function VehicleRegistry() {
                       )}
                       <td className="px-4 py-3">
                         <StatusPill status={v.status} />
+                      </td>
+                      <td className="px-4 py-3">
+                        {riskMap[v.reg] ? (
+                          <RiskBadge band={riskMap[v.reg].riskBand} />
+                        ) : (
+                          <span className="text-[11px] text-slate-400">—</span>
+                        )}
                       </td>
                       {canEdit && (
                         <td className="sticky right-0 z-10 bg-inherit px-4 py-3 group-hover:bg-teal-50/40">
@@ -731,7 +831,7 @@ export default function VehicleRegistry() {
           <div className="animate-overlay-in absolute inset-0 bg-navy-950/40 backdrop-blur-[1px]" onClick={() => setPanel(null)} />
           <div className="animate-panel-in absolute right-0 top-0 flex h-full w-full max-w-[460px] flex-col bg-white shadow-2xl">
             {panel.mode === 'detail' ? (
-              <DetailPanel vehicle={panel.vehicle} onClose={() => setPanel(null)} canSeeCost={canSeeCost} />
+              <DetailPanel vehicle={panel.vehicle} onClose={() => setPanel(null)} canSeeCost={canSeeCost} riskData={riskMap[panel.vehicle.reg]} />
             ) : (
               <VehicleForm
                 editing={panel.mode === 'edit' ? panel.vehicle : undefined}
