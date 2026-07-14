@@ -106,6 +106,7 @@ model Trip {
   origin        String
   destination   String
   distance      Float?
+  distanceCovered Float?
   cargoWeight   Float?
   scheduledDate DateTime
   startTime     DateTime?
@@ -125,6 +126,15 @@ model Trip {
   driver        User?      @relation("DriverTrips", fields: [driverId], references: [id])
 
   @@map("trips")
+}
+
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
 }
 
 model MaintenanceLog {

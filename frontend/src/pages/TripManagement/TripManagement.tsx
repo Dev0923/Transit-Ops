@@ -411,13 +411,46 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
 
 /* ---------- Complete modal ---------- */
 
-function CompleteModal({ trip, onClose, onComplete }: { trip: Trip; onClose: () => void; onComplete: (revenue: number, fuelVolume: number, fuelCost: number) => void }) {
-  const [odo, setOdo] = useState('')
+function CompleteModal({ trip, onClose, onComplete }: { trip: Trip; onClose: () => void; onComplete: (revenue: number, fuelVolume: number, fuelCost: number, distanceCovered: number) => void }) {
+  const [odo, setOdo] = useState<string>(trip.distanceKm ? String(trip.distanceKm) : '')
   const [fuel, setFuel] = useState('')
   const [fuelCost, setFuelCost] = useState('')
   const [revenue, setRevenue] = useState('')
   const [notes, setNotes] = useState('')
   const [touched, setTouched] = useState(false)
+  const [fuelPrice, setFuelPrice] = useState<number>(130)
+  const fuelCostManuallyEdited = useRef(false)
+
+  useEffect(() => {
+    fetch('/api/config/fuel-price', {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.fuelPricePerLiter) {
+          setFuelPrice(data.fuelPricePerLiter)
+        }
+      })
+      .catch(err => console.error('Failed to fetch fuel price:', err))
+  }, [])
+
+  const handleFuelConsumedChange = (value: string) => {
+    setFuel(value)
+    if (!fuelCostManuallyEdited.current) {
+      const num = Number(value)
+      if (!isNaN(num)) {
+        setFuelCost((num * fuelPrice).toFixed(2))
+      } else {
+        setFuelCost('')
+      }
+    }
+  }
+
+  const handleFuelCostChange = (value: string) => {
+    fuelCostManuallyEdited.current = true
+    setFuelCost(value)
+  }
+
   const valid = odo !== '' && Number(odo) >= 0 && fuel !== '' && Number(fuel) >= 0 && revenue !== '' && Number(revenue) >= 0 && (fuel === '' || fuel === '0' || (fuelCost !== '' && Number(fuelCost) >= 0))
 
   return (
@@ -440,7 +473,7 @@ function CompleteModal({ trip, onClose, onComplete }: { trip: Trip; onClose: () 
               <input type="number" className={`${inputCls(touched && (revenue === '' || Number(revenue) < 0))} pl-8`} placeholder="Enter trip revenue" value={revenue} onChange={(e) => setRevenue(e.target.value)} />
             </div>
           </FormField>
-          <FormField label="Final Odometer Reading" error={touched && (odo === '' || Number(odo) < 0) ? 'Enter a valid reading.' : undefined}>
+          <FormField label="Distance Covered" error={touched && (odo === '' || Number(odo) < 0) ? 'Enter a valid reading.' : undefined} hint="Auto-filled from planned route — adjust if actual distance differed">
             <div className="relative">
               <input type="number" className={`${inputCls(touched && (odo === '' || Number(odo) < 0))} pr-10`} placeholder="0" value={odo} onChange={(e) => setOdo(e.target.value)} />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-medium text-slate-400">km</span>
@@ -448,14 +481,14 @@ function CompleteModal({ trip, onClose, onComplete }: { trip: Trip; onClose: () 
           </FormField>
           <FormField label="Fuel Consumed" error={touched && (fuel === '' || Number(fuel) < 0) ? 'Enter a valid amount.' : undefined}>
             <div className="relative">
-              <input type="number" className={`${inputCls(touched && (fuel === '' || Number(fuel) < 0))} pr-14`} placeholder="0" value={fuel} onChange={(e) => setFuel(e.target.value)} />
+              <input type="number" className={`${inputCls(touched && (fuel === '' || Number(fuel) < 0))} pr-14`} placeholder="0" value={fuel} onChange={(e) => handleFuelConsumedChange(e.target.value)} />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-medium text-slate-400">liters</span>
             </div>
           </FormField>
-          <FormField label="Fuel Cost" error={touched && Number(fuel) > 0 && (fuelCost === '' || Number(fuelCost) < 0) ? 'Enter the cost of fuel for this trip.' : undefined} hint="A fuel log entry will be auto-created in Fuel & Expense Tracking">
+          <FormField label="Fuel Cost" error={touched && Number(fuel) > 0 && (fuelCost === '' || Number(fuelCost) < 0) ? 'Enter the cost of fuel for this trip.' : undefined} hint={`Estimated at ₹${fuelPrice}/liter — adjust if the actual price differed`}>
             <div className="relative">
               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-medium text-slate-400">₹</span>
-              <input type="number" className={`${inputCls(touched && Number(fuel) > 0 && (fuelCost === '' || Number(fuelCost) < 0))} pl-8`} placeholder="Cost of fuel for this trip" value={fuelCost} onChange={(e) => setFuelCost(e.target.value)} />
+              <input type="number" className={`${inputCls(touched && Number(fuel) > 0 && (fuelCost === '' || Number(fuelCost) < 0))} pl-8`} placeholder="Cost of fuel for this trip" value={fuelCost} onChange={(e) => handleFuelCostChange(e.target.value)} />
             </div>
           </FormField>
           <FormField label="Notes (optional)">
@@ -475,11 +508,11 @@ function CompleteModal({ trip, onClose, onComplete }: { trip: Trip; onClose: () 
           <button
             onClick={() => {
               setTouched(true)
-              if (valid) onComplete(Number(revenue), Number(fuel), Number(fuelCost || 0))
+              if (valid) onComplete(Number(revenue), Number(fuel), Number(fuelCost || 0), Number(odo || 0))
             }}
             className="h-11 flex-1 rounded-lg bg-teal-600 text-[14px] font-semibold text-white shadow-lg shadow-teal-600/25 transition hover:bg-teal-700 focus-visible:ring-4 focus-visible:ring-teal-500/30"
           >
-            Mark as Completed
+            Complete Trip
           </button>
         </div>
       </div>
@@ -600,7 +633,7 @@ export default function TripManagement() {
   const to = Math.min(current * PAGE_SIZE, filtered.length)
   const resetPage = () => setPage(1)
 
-  async function setStatus(id: string, status: TripStatus, revenue?: number, fuelVolume?: number, fuelCost?: number) {
+  async function setStatus(id: string, status: TripStatus, revenue?: number, fuelVolume?: number, fuelCost?: number, distanceCovered?: number) {
     try {
       const mapped = status === 'Draft' ? 'SCHEDULED' : status === 'Dispatched' ? 'IN_PROGRESS' : status === 'Completed' ? 'COMPLETED' : 'CANCELLED'
       const payload: any = { status: mapped }
@@ -608,6 +641,7 @@ export default function TripManagement() {
         if (revenue !== undefined) payload.revenue = revenue
         if (fuelVolume !== undefined) payload.fuelVolume = fuelVolume
         if (fuelCost !== undefined) payload.fuelCost = fuelCost
+        if (distanceCovered !== undefined) payload.distanceCovered = distanceCovered
       }
       await tripService.update(id, payload)
       fetchAll()
@@ -800,7 +834,7 @@ export default function TripManagement() {
         </div>
       )}
 
-      {completing && <CompleteModal trip={completing} onClose={() => setCompleting(null)} onComplete={(rev, fuelVol, fuelCst) => { setStatus(completing.id, 'Completed', rev, fuelVol, fuelCst); setCompleting(null) }} />}
+      {completing && <CompleteModal trip={completing} onClose={() => setCompleting(null)} onComplete={(rev, fuelVol, fuelCst, dist) => { setStatus(completing.id, 'Completed', rev, fuelVol, fuelCst, dist); setCompleting(null) }} />}
       {cancelling && <CancelModal trip={cancelling} onClose={() => setCancelling(null)} onConfirm={() => { setStatus(cancelling.id, 'Cancelled'); setCancelling(null) }} />}
     </div>
   )

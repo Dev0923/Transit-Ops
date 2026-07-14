@@ -17,6 +17,7 @@ const userRoutes = require("./routes/userRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const geocodeRoutes = require("./routes/geocodeRoutes");
+const configRoutes = require("./routes/configRoutes");
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/notifications", requireAuth, notificationRoutes);
 app.use("/api/geocode", geocodeRoutes);
+app.use("/api/config", configRoutes);
 
 // ─── 404 fallback ───────────────────────────────────────
 app.use((_req, res) => {
