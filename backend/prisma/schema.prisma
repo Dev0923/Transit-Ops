@@ -145,6 +145,7 @@ model FuelExpense {
   odometer    Float
   fuelStation String?
   proofImage  String?  // Base64 encoded image
+  source      String?  // e.g. 'auto-trip-completion' to distinguish auto-logged entries
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

@@ -415,7 +415,8 @@ export default function FuelExpense() {
         loggedBy: 'Admin',
         ownedBySelf: true,
         vehicleId: f.vehicleId,
-        proofImage: f.proofImage
+        proofImage: f.proofImage,
+        source: f.source || undefined,
       })))
     } catch (err) {
       console.error(err)
@@ -631,7 +632,14 @@ export default function FuelExpense() {
                       <td className="px-4 py-3">
                         <TypeTag type={e.type} />
                       </td>
-                      <td className="px-4 py-3 text-slate-600">{entryDetail(e)}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {entryDetail(e)}
+                        {e.source && (
+                          <span className="ml-2 inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-semibold text-teal-700 ring-1 ring-inset ring-teal-600/20">
+                            {e.source}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-right tabular-nums font-medium text-navy-900">{inr(e.costInr)}</td>
                       {showLoggedBy && <td className="px-4 py-3 text-slate-600">{e.loggedBy}</td>}
                       <td className="px-4 py-3">

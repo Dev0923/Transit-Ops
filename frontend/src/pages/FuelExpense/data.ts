@@ -14,6 +14,7 @@ export type Entry = {
   loggedBy: string
   ownedBySelf?: boolean // logged by the current driver
   proofImage?: string // base64 image data
+  source?: string // e.g. 'Auto-logged from Trip #abc123' for auto-generated entries
 }
 
 export const EXPENSE_TYPES: ExpenseType[] = ['Toll', 'Parking', 'Fine', 'Other']

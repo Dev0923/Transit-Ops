@@ -104,7 +104,7 @@ async function update(req, res, next) {
       }
     }
 
-    const data = req.body;
+    const data = { ...req.body };
     if (req.user.role === "DRIVER") {
       if (existing.driverId === null && existing.status === "DRAFT" && data.driverId === req.user.id) {
         // Driver is accepting an open trip, allow setting driverId and status
@@ -114,19 +114,66 @@ async function update(req, res, next) {
       }
     }
 
+    // Extract fuel fields — these are NOT Trip model columns, so strip them before prisma.trip.update
+    const fuelVolume = data.fuelVolume;
+    const fuelCost = data.fuelCost;
+    delete data.fuelVolume;
+    delete data.fuelCost;
+
+    // ── COMPLETED: wrap trip update + vehicle status + auto fuel-log in one transaction ──
+    if (data.status === "COMPLETED") {
+      const result = await prisma.$transaction(async (tx) => {
+        // 1. Update trip
+        const trip = await tx.trip.update({
+          where: { id: req.params.id },
+          data,
+        });
+
+        // 2. Set vehicle back to AVAILABLE
+        await tx.vehicle.update({
+          where: { id: trip.vehicleId },
+          data: { status: "AVAILABLE" },
+        });
+
+        // 3. Auto-create fuel log if fuel data was provided and volume > 0
+        let fuelLog = null;
+        if (fuelVolume && Number(fuelVolume) > 0 && fuelCost && Number(fuelCost) > 0) {
+          const litres = Number(fuelVolume);
+          const totalCost = Number(fuelCost);
+          fuelLog = await tx.fuelExpense.create({
+            data: {
+              vehicleId: trip.vehicleId,
+              userId: req.user.id,
+              date: new Date(),
+              litres,
+              costPerLitre: litres > 0 ? totalCost / litres : 0,
+              totalCost,
+              odometer: trip.distance || 0,
+              source: `Auto-logged from Trip #${trip.id.slice(0, 8)}`,
+            },
+          });
+        }
+
+        return { trip, fuelLog };
+      });
+
+      return res.json(result.trip);
+    }
+
+    // ── Non-COMPLETED status updates (no transaction needed) ──
     const trip = await prisma.trip.update({
       where: { id: req.params.id },
       data,
     });
 
     // Status transitions → update vehicle status
-    if (req.body.status === "IN_PROGRESS" || req.body.status === "SCHEDULED" || req.body.status === "DRAFT") {
+    if (data.status === "IN_PROGRESS" || data.status === "SCHEDULED" || data.status === "DRAFT") {
       await prisma.vehicle.update({
         where: { id: trip.vehicleId },
         data: { status: "ON_TRIP" },
       });
     }
-    if (req.body.status === "COMPLETED" || req.body.status === "CANCELLED") {
+    if (data.status === "CANCELLED") {
       await prisma.vehicle.update({
         where: { id: trip.vehicleId },
         data: { status: "AVAILABLE" },

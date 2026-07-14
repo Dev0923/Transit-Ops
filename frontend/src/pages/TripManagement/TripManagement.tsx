@@ -358,13 +358,14 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
 
 /* ---------- Complete modal ---------- */
 
-function CompleteModal({ trip, onClose, onComplete }: { trip: Trip; onClose: () => void; onComplete: (revenue: number) => void }) {
+function CompleteModal({ trip, onClose, onComplete }: { trip: Trip; onClose: () => void; onComplete: (revenue: number, fuelVolume: number, fuelCost: number) => void }) {
   const [odo, setOdo] = useState('')
   const [fuel, setFuel] = useState('')
+  const [fuelCost, setFuelCost] = useState('')
   const [revenue, setRevenue] = useState('')
   const [notes, setNotes] = useState('')
   const [touched, setTouched] = useState(false)
-  const valid = odo !== '' && Number(odo) >= 0 && fuel !== '' && Number(fuel) >= 0 && revenue !== '' && Number(revenue) >= 0
+  const valid = odo !== '' && Number(odo) >= 0 && fuel !== '' && Number(fuel) >= 0 && revenue !== '' && Number(revenue) >= 0 && (fuel === '' || fuel === '0' || (fuelCost !== '' && Number(fuelCost) >= 0))
 
   return (
     <ModalShell onClose={onClose}>
@@ -398,6 +399,12 @@ function CompleteModal({ trip, onClose, onComplete }: { trip: Trip; onClose: () 
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-medium text-slate-400">liters</span>
             </div>
           </FormField>
+          <FormField label="Fuel Cost" error={touched && Number(fuel) > 0 && (fuelCost === '' || Number(fuelCost) < 0) ? 'Enter the cost of fuel for this trip.' : undefined} hint="A fuel log entry will be auto-created in Fuel & Expense Tracking">
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-medium text-slate-400">₹</span>
+              <input type="number" className={`${inputCls(touched && Number(fuel) > 0 && (fuelCost === '' || Number(fuelCost) < 0))} pl-8`} placeholder="Cost of fuel for this trip" value={fuelCost} onChange={(e) => setFuelCost(e.target.value)} />
+            </div>
+          </FormField>
           <FormField label="Notes (optional)">
             <textarea rows={3} className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-[14px] text-navy-950 outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-500/15" placeholder="Any observations from the trip…" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </FormField>
@@ -415,7 +422,7 @@ function CompleteModal({ trip, onClose, onComplete }: { trip: Trip; onClose: () 
           <button
             onClick={() => {
               setTouched(true)
-              if (valid) onComplete(Number(revenue))
+              if (valid) onComplete(Number(revenue), Number(fuel), Number(fuelCost || 0))
             }}
             className="h-11 flex-1 rounded-lg bg-teal-600 text-[14px] font-semibold text-white shadow-lg shadow-teal-600/25 transition hover:bg-teal-700 focus-visible:ring-4 focus-visible:ring-teal-500/30"
           >
@@ -540,12 +547,14 @@ export default function TripManagement() {
   const to = Math.min(current * PAGE_SIZE, filtered.length)
   const resetPage = () => setPage(1)
 
-  async function setStatus(id: string, status: TripStatus, revenue?: number) {
+  async function setStatus(id: string, status: TripStatus, revenue?: number, fuelVolume?: number, fuelCost?: number) {
     try {
       const mapped = status === 'Draft' ? 'SCHEDULED' : status === 'Dispatched' ? 'IN_PROGRESS' : status === 'Completed' ? 'COMPLETED' : 'CANCELLED'
       const payload: any = { status: mapped }
-      if (revenue !== undefined && mapped === 'COMPLETED') {
-        payload.revenue = revenue
+      if (mapped === 'COMPLETED') {
+        if (revenue !== undefined) payload.revenue = revenue
+        if (fuelVolume !== undefined) payload.fuelVolume = fuelVolume
+        if (fuelCost !== undefined) payload.fuelCost = fuelCost
       }
       await tripService.update(id, payload)
       fetchAll()
@@ -732,7 +741,7 @@ export default function TripManagement() {
         </div>
       )}
 
-      {completing && <CompleteModal trip={completing} onClose={() => setCompleting(null)} onComplete={(rev) => { setStatus(completing.id, 'Completed', rev); setCompleting(null) }} />}
+      {completing && <CompleteModal trip={completing} onClose={() => setCompleting(null)} onComplete={(rev, fuelVol, fuelCst) => { setStatus(completing.id, 'Completed', rev, fuelVol, fuelCst); setCompleting(null) }} />}
       {cancelling && <CancelModal trip={cancelling} onClose={() => setCancelling(null)} onConfirm={() => { setStatus(cancelling.id, 'Cancelled'); setCancelling(null) }} />}
     </div>
   )
