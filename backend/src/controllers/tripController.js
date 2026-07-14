@@ -1,4 +1,5 @@
 const prisma = require("../config/db");
+const { createNotification } = require("../services/notificationService");
 const { geocodeTripEndpoints } = require("../services/geocodingService");
 
 // GET /api/trips
@@ -84,6 +85,23 @@ async function create(req, res, next) {
       });
     }
 
+    if (trip.status === "IN_PROGRESS" || trip.status === "SCHEDULED") {
+      createNotification({
+        targetRole: "MANAGER",
+        type: "TRIP_DISPATCHED",
+        message: `Trip #${trip.id.slice(0, 8)} dispatched to ${trip.destination}`,
+        relatedEntityId: trip.id
+      });
+      if (trip.driverId) {
+        createNotification({
+          userId: trip.driverId,
+          type: "TRIP_DISPATCHED",
+          message: `You have been dispatched for Trip #${trip.id.slice(0, 8)} to ${trip.destination}`,
+          relatedEntityId: trip.id
+        });
+      }
+    }
+
     res.status(201).json(trip);
   } catch (err) {
     next(err);
@@ -157,6 +175,20 @@ async function update(req, res, next) {
         return { trip, fuelLog };
       });
 
+      // Emit notifications
+      createNotification({
+        targetRole: "MANAGER",
+        type: "TRIP_COMPLETED",
+        message: `Trip #${result.trip.id.slice(0, 8)} completed — ${result.trip.distance || 0}km`,
+        relatedEntityId: result.trip.id
+      });
+      createNotification({
+        targetRole: "FINANCIAL_ANALYST",
+        type: "TRIP_COMPLETED",
+        message: `Trip #${result.trip.id.slice(0, 8)} completed — ${result.trip.distance || 0}km`,
+        relatedEntityId: result.trip.id
+      });
+
       return res.json(result.trip);
     }
 
@@ -178,6 +210,23 @@ async function update(req, res, next) {
         where: { id: trip.vehicleId },
         data: { status: "AVAILABLE" },
       });
+    }
+
+    if (data.status === "IN_PROGRESS" || data.status === "SCHEDULED") {
+      createNotification({
+        targetRole: "MANAGER",
+        type: "TRIP_DISPATCHED",
+        message: `Trip #${trip.id.slice(0, 8)} dispatched to ${trip.destination}`,
+        relatedEntityId: trip.id
+      });
+      if (trip.driverId) {
+        createNotification({
+          userId: trip.driverId,
+          type: "TRIP_DISPATCHED",
+          message: `You have been dispatched for Trip #${trip.id.slice(0, 8)} to ${trip.destination}`,
+          relatedEntityId: trip.id
+        });
+      }
     }
 
     res.json(trip);

@@ -1,6 +1,7 @@
-import { Menu, LogOut, Bell, Moon, Sun } from "lucide-react";
+import { Menu, LogOut, Moon, Sun } from "lucide-react";
 import { useState, useEffect } from "react";
 import useAuth from "../../hooks/useAuth";
+import NotificationDropdown from "../common/NotificationDropdown";
 
 export default function TopHeader({ onMenuClick }) {
   const { user, logout } = useAuth();
@@ -41,10 +42,7 @@ export default function TopHeader({ onMenuClick }) {
           {isDark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
-        <button className="relative p-2 rounded-lg text-surface-700 hover:bg-surface-100 transition">
-          <Bell size={18} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-        </button>
+        <NotificationDropdown />
 
         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-100 text-sm">
           <span className="font-medium">{user?.name}</span>

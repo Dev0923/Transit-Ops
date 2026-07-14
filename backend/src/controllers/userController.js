@@ -1,5 +1,6 @@
 const prisma = require("../config/db");
 const { hashPassword } = require("../utils/bcrypt");
+const { createNotification } = require("../services/notificationService");
 
 // GET /api/users  — Admin only
 async function getAll(req, res, next) {
@@ -53,10 +54,22 @@ async function update(req, res, next) {
     if (data.password) {
       data.password = await hashPassword(data.password);
     }
+    const existing = await prisma.user.findUnique({ where: { id: req.params.id } });
+    
     const user = await prisma.user.update({
       where: { id: req.params.id },
       data,
     });
+
+    if (existing && data.role && existing.role !== data.role) {
+      createNotification({
+        userId: user.id,
+        type: "ROLE_ASSIGNED",
+        message: `Your role has been set to ${user.role}`,
+        relatedEntityId: user.id
+      });
+    }
+
     const { password, ...safe } = user;
     res.json(safe);
   } catch (err) {

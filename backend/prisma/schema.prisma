@@ -40,6 +40,17 @@ enum MaintenanceType {
   CORRECTIVE
 }
 
+enum NotificationType {
+  TRIP_DISPATCHED
+  TRIP_COMPLETED
+  VEHICLE_MAINTENANCE
+  LICENSE_EXPIRING
+  LICENSE_EXPIRED
+  FUEL_LOGGED
+  DRIVER_SUSPENDED
+  ROLE_ASSIGNED
+}
+
 // ─── Models ─────────────────────────────────────────────
 
 model User {
@@ -58,6 +69,7 @@ model User {
   tripsAsDriver Trip[] @relation("DriverTrips")
   fuelExpenses  FuelExpense[]
   driverProfile DriverProfile?
+  notifications Notification[]
 
   @@map("users")
 }
@@ -169,4 +181,20 @@ model DriverProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("driver_profiles")
+}
+
+model Notification {
+  id              String           @id @default(uuid())
+  userId          String?          // If set, target a specific user
+  targetRole      Role?            // If userId null, broadcast to a role
+  type            NotificationType
+  message         String
+  relatedEntityId String?          // Trip ID, Vehicle ID, etc. for navigation
+  isRead          Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user            User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
 }

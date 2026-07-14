@@ -1,5 +1,6 @@
 const prisma = require("../config/db");
 const { hashPassword } = require("../utils/bcrypt");
+const { createNotification } = require("../services/notificationService");
 
 // GET /api/drivers
 async function getAll(req, res, next) {
@@ -124,11 +125,29 @@ async function update(req, res, next) {
       };
     }
 
+    const existing = await prisma.user.findUnique({ where: { id: req.params.id } });
+
     const driver = await prisma.user.update({
       where: { id: req.params.id },
       data,
       include: { driverProfile: true }
     });
+
+    if (existing && existing.isActive === true && driver.isActive === false) {
+      createNotification({
+        targetRole: "SAFETY_OFFICER",
+        type: "DRIVER_SUSPENDED",
+        message: `${driver.name} marked Suspended`,
+        relatedEntityId: driver.id
+      });
+      createNotification({
+        targetRole: "MANAGER",
+        type: "DRIVER_SUSPENDED",
+        message: `${driver.name} marked Suspended`,
+        relatedEntityId: driver.id
+      });
+    }
+
     const { password, ...safe } = driver;
     res.json(safe);
   } catch (err) {

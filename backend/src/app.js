@@ -3,6 +3,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const errorHandler = require("./middleware/errorHandler");
+const requireAuth = require("./middleware/authMiddleware");
 
 // Route imports
 const authRoutes = require("./routes/authRoutes");
@@ -14,6 +15,7 @@ const fuelExpenseRoutes = require("./routes/fuelExpenseRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const userRoutes = require("./routes/userRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 const app = express();
 
@@ -38,6 +40,7 @@ app.use("/api/fuel-expenses", fuelExpenseRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/notifications", requireAuth, notificationRoutes);
 
 // ─── 404 fallback ───────────────────────────────────────
 app.use((_req, res) => {

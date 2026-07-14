@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Moon, Sun } from 'lucide-react'
 import { Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import useAuth from '../../hooks/useAuth'
+import NotificationDropdown from '../common/NotificationDropdown'
 import {
   TruckIcon,
   BellIcon,
@@ -301,12 +302,7 @@ function Header({
             {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
 
-          <button className="relative grid h-9 w-9 place-items-center rounded-lg text-slate-500 dark:text-slate-400 transition hover:bg-slate-100 dark:hover:bg-navy-800 hover:text-navy-800 dark:hover:text-white">
-            <BellIcon className="h-5 w-5" />
-            <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
-              5
-            </span>
-          </button>
+          <NotificationDropdown />
 
           <div className="relative">
             <button

@@ -1,6 +1,7 @@
 const prisma = require("../config/db");
 const permissions = require("../config/permissions");
 const { getAllVehicleRisks } = require("../services/maintenanceRiskService");
+const { createNotification } = require("../services/notificationService");
 
 // Helper to strip cost
 function stripCost(log, role) {
@@ -63,6 +64,20 @@ async function create(req, res, next) {
     await prisma.vehicle.update({
       where: { id: log.vehicleId },
       data: { status: "IN_SHOP" },
+    });
+
+    // Notify Manager & Analyst
+    createNotification({
+      targetRole: "MANAGER",
+      type: "VEHICLE_MAINTENANCE",
+      message: `Vehicle ${log.vehicleId.slice(0, 8)} marked In Shop for ${log.serviceType}`,
+      relatedEntityId: log.vehicleId
+    });
+    createNotification({
+      targetRole: "FINANCIAL_ANALYST",
+      type: "VEHICLE_MAINTENANCE",
+      message: `Vehicle ${log.vehicleId.slice(0, 8)} marked In Shop for ${log.serviceType}`,
+      relatedEntityId: log.vehicleId
     });
 
     res.status(201).json(log);

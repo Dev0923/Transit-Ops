@@ -1,4 +1,5 @@
 const prisma = require("../config/db");
+const { createNotification } = require("../services/notificationService");
 
 // GET /api/fuel-expenses
 async function getAll(req, res, next) {
@@ -58,6 +59,19 @@ async function create(req, res, next) {
         data: { currentMileage: data.odometer },
       });
     }
+
+    createNotification({
+      targetRole: "MANAGER",
+      type: "FUEL_LOGGED",
+      message: `Fuel expense logged for Vehicle ${data.vehicleId.slice(0, 8)} — ₹${data.totalCost}`,
+      relatedEntityId: data.vehicleId
+    });
+    createNotification({
+      targetRole: "FINANCIAL_ANALYST",
+      type: "FUEL_LOGGED",
+      message: `Fuel expense logged for Vehicle ${data.vehicleId.slice(0, 8)} — ₹${data.totalCost}`,
+      relatedEntityId: data.vehicleId
+    });
 
     res.status(201).json(expense);
   } catch (err) {
