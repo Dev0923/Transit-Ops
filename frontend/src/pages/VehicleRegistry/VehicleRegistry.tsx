@@ -429,6 +429,9 @@ function DetailPanel({ vehicle, onClose, canSeeCost, riskData }: { vehicle: Vehi
   if (canSeeCost) {
     details.push(['Acquisition Cost', inr(vehicle.costInr)])
     details.push(['Total Ops Cost', inr(opsCost)])
+    // Show revenue from completed trips if available via riskData (passed from parent with ROI data)
+    const totalRevenue = riskData?.totalRevenue ?? 0
+    details.push(['Total Revenue', inr(totalRevenue)])
   }
 
   return (

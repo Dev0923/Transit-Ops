@@ -358,12 +358,13 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
 
 /* ---------- Complete modal ---------- */
 
-function CompleteModal({ trip, onClose, onComplete }: { trip: Trip; onClose: () => void; onComplete: () => void }) {
+function CompleteModal({ trip, onClose, onComplete }: { trip: Trip; onClose: () => void; onComplete: (revenue: number) => void }) {
   const [odo, setOdo] = useState('')
   const [fuel, setFuel] = useState('')
+  const [revenue, setRevenue] = useState('')
   const [notes, setNotes] = useState('')
   const [touched, setTouched] = useState(false)
-  const valid = odo !== '' && Number(odo) >= 0 && fuel !== '' && Number(fuel) >= 0
+  const valid = odo !== '' && Number(odo) >= 0 && fuel !== '' && Number(fuel) >= 0 && revenue !== '' && Number(revenue) >= 0
 
   return (
     <ModalShell onClose={onClose}>
@@ -379,6 +380,12 @@ function CompleteModal({ trip, onClose, onComplete }: { trip: Trip; onClose: () 
         </p>
 
         <div className="space-y-4">
+          <FormField label="Revenue Earned" error={touched && (revenue === '' || Number(revenue) < 0) ? 'Enter a valid amount (0 for non-revenue trips).' : undefined} hint="This value feeds the Vehicle ROI calculation in Reports & Analytics">
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-medium text-slate-400">₹</span>
+              <input type="number" className={`${inputCls(touched && (revenue === '' || Number(revenue) < 0))} pl-8`} placeholder="Enter trip revenue" value={revenue} onChange={(e) => setRevenue(e.target.value)} />
+            </div>
+          </FormField>
           <FormField label="Final Odometer Reading" error={touched && (odo === '' || Number(odo) < 0) ? 'Enter a valid reading.' : undefined}>
             <div className="relative">
               <input type="number" className={`${inputCls(touched && (odo === '' || Number(odo) < 0))} pr-10`} placeholder="0" value={odo} onChange={(e) => setOdo(e.target.value)} />
@@ -408,7 +415,7 @@ function CompleteModal({ trip, onClose, onComplete }: { trip: Trip; onClose: () 
           <button
             onClick={() => {
               setTouched(true)
-              if (valid) onComplete()
+              if (valid) onComplete(Number(revenue))
             }}
             className="h-11 flex-1 rounded-lg bg-teal-600 text-[14px] font-semibold text-white shadow-lg shadow-teal-600/25 transition hover:bg-teal-700 focus-visible:ring-4 focus-visible:ring-teal-500/30"
           >
@@ -533,10 +540,14 @@ export default function TripManagement() {
   const to = Math.min(current * PAGE_SIZE, filtered.length)
   const resetPage = () => setPage(1)
 
-  async function setStatus(id: string, status: TripStatus) {
+  async function setStatus(id: string, status: TripStatus, revenue?: number) {
     try {
       const mapped = status === 'Draft' ? 'SCHEDULED' : status === 'Dispatched' ? 'IN_PROGRESS' : status === 'Completed' ? 'COMPLETED' : 'CANCELLED'
-      await tripService.update(id, { status: mapped })
+      const payload: any = { status: mapped }
+      if (revenue !== undefined && mapped === 'COMPLETED') {
+        payload.revenue = revenue
+      }
+      await tripService.update(id, payload)
       fetchAll()
     } catch (err) {
       console.error(err)
@@ -721,7 +732,7 @@ export default function TripManagement() {
         </div>
       )}
 
-      {completing && <CompleteModal trip={completing} onClose={() => setCompleting(null)} onComplete={() => { setStatus(completing.id, 'Completed'); setCompleting(null) }} />}
+      {completing && <CompleteModal trip={completing} onClose={() => setCompleting(null)} onComplete={(rev) => { setStatus(completing.id, 'Completed', rev); setCompleting(null) }} />}
       {cancelling && <CancelModal trip={cancelling} onClose={() => setCancelling(null)} onConfirm={() => { setStatus(cancelling.id, 'Cancelled'); setCancelling(null) }} />}
     </div>
   )

@@ -100,6 +100,7 @@ model Trip {
   endTime       DateTime?
   status        TripStatus @default(DRAFT)
   notes         String?
+  revenue       Float      @default(0)
   sourceLat     Float?
   sourceLng     Float?
   destLat       Float?

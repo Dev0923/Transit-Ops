@@ -121,4 +121,56 @@ async function exportCSV(req, res, next) {
   }
 }
 
-module.exports = { getSummary, getFleetUtilization, getFuelEfficiency, exportCSV };
+// GET /api/reports/vehicle-roi
+async function getVehicleROI(req, res, next) {
+  try {
+    const vehicles = await prisma.vehicle.findMany({
+      where: { status: { notIn: ["RETIRED"] } },
+      include: {
+        trips: {
+          where: { status: "COMPLETED" },
+          select: { revenue: true, distance: true },
+        },
+        maintenanceLogs: {
+          select: { cost: true },
+        },
+        fuelExpenses: {
+          select: { totalCost: true },
+        },
+      },
+    });
+
+    const data = vehicles.map((v) => {
+      const totalRevenue = v.trips.reduce((s, t) => s + (t.revenue || 0), 0);
+      const totalMaintCost = v.maintenanceLogs.reduce((s, m) => s + m.cost, 0);
+      const totalFuelCost = v.fuelExpenses.reduce((s, f) => s + f.totalCost, 0);
+      const acquisitionCost = v.purchaseCost || 0;
+      const roi =
+        acquisitionCost > 0
+          ? ((totalRevenue - (totalMaintCost + totalFuelCost)) / acquisitionCost) * 100
+          : 0;
+
+      return {
+        vehicleId: v.id,
+        registrationNo: v.registrationNo,
+        make: v.make,
+        model: v.model,
+        type: v.type,
+        totalRevenue: Math.round(totalRevenue),
+        totalMaintCost: Math.round(totalMaintCost),
+        totalFuelCost: Math.round(totalFuelCost),
+        acquisitionCost: Math.round(acquisitionCost),
+        roi: Math.round(roi * 10) / 10,
+        completedTrips: v.trips.length,
+      };
+    });
+
+    // Sort by ROI descending
+    data.sort((a, b) => b.roi - a.roi);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getSummary, getFleetUtilization, getFuelEfficiency, exportCSV, getVehicleROI };
