@@ -143,8 +143,9 @@ function DriverForm({
   reduced?: boolean // driver editing own profile → limited fields
   existing: Driver[]
   onCancel?: () => void
-  onSave: (d: Driver) => void
+  onSave: (d: Driver) => Promise<void>
 }) {
+  const [backendError, setBackendError] = useState<string>('')
   const [form, setForm] = useState<FormState>(
     editing
       ? { name: editing.name, license: editing.license, category: editing.category, expiry: editing.expiry, contact: editing.contact, safety: String(editing.safety), status: editing.status }
@@ -160,27 +161,38 @@ function DriverForm({
     else if (existing.some((d) => d.license.toLowerCase() === form.license.trim().toLowerCase() && d.id !== editing?.id)) e.license = 'This license number already exists.'
     if (!form.expiry) e.expiry = 'License expiry date is required.'
     if (!form.contact.trim()) e.contact = 'Contact number is required.'
+    if (backendError) e.license = backendError
     return e
-  }, [form, existing, editing])
+  }, [form, existing, editing, backendError])
 
   const expiryWarn = form.expiry && daysToExpiry(form.expiry) < 0
-  const valid = Object.keys(errors).length === 0
+  const valid = Object.keys(errors).length === 0 || (Object.keys(errors).length === 1 && errors.license === backendError)
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault()
+    setBackendError('')
     setTouched({ name: true, license: true, expiry: true, contact: true })
-    if (!valid) return
-    onSave({
-      id: editing?.id ?? `d${Date.now()}`,
-      name: form.name.trim(),
-      license: form.license.trim(),
-      category: form.category,
-      expiry: form.expiry,
-      contact: form.contact.trim(),
-      safety: editing ? editing.safety : Number(form.safety) || 75,
-      status: editing ? form.status : 'Available',
-      self: editing?.self,
-    })
+    if (!valid && !backendError) return // If the only error is backend error, let it try again
+
+    try {
+      await onSave({
+        id: editing?.id ?? `d${Date.now()}`,
+        name: form.name.trim(),
+        license: form.license.trim(),
+        category: form.category,
+        expiry: form.expiry,
+        contact: form.contact.trim(),
+        safety: editing ? editing.safety : Number(form.safety) || 75,
+        status: editing ? form.status : 'Available',
+        self: editing?.self,
+      })
+    } catch (err: any) {
+      if (err.response?.data?.error === "License number already exists.") {
+        setBackendError("⚠️ This license number is already registered")
+      } else {
+        alert("Failed to save driver: " + (err.response?.data?.error || err.message))
+      }
+    }
   }
 
   const err = (k: string) => (touched[k] ? errors[k] : undefined)
@@ -415,27 +427,25 @@ export default function DriverManagement() {
   const to = Math.min(current * PAGE_SIZE, filtered.length)
   const resetPage = () => setPage(1)
 
-  async function saveDriver(d: Driver) {
-    try {
-      const payload = {
-        name: d.name,
-        phone: d.contact,
-        email: `${d.name.toLowerCase().replace(/\s+/g, '.')}@transitops.local`,
-        password: 'password123',
-        isActive: d.status === 'Available'
-      }
-
-      if (panel?.mode === 'edit') {
-        await driverService.update(d.id, payload)
-      } else {
-        await driverService.create(payload)
-      }
-      setPanel(null)
-      fetchDrivers()
-    } catch (err) {
-      console.error(err)
-      alert("Failed to save driver. " + (err.response?.data?.error || ""))
+  async function saveDriver(d: Driver): Promise<void> {
+    const payload = {
+      name: d.name,
+      phone: d.contact,
+      email: `${d.name.toLowerCase().replace(/\s+/g, '.')}@transitops.local`,
+      password: 'password123',
+      isActive: d.status === 'Available',
+      licenseNumber: d.license,
+      licenseCategory: d.category,
+      licenseExpiry: d.expiry
     }
+
+    if (panel?.mode === 'edit') {
+      await driverService.update(d.id, payload)
+    } else {
+      await driverService.create(payload)
+    }
+    setPanel(null)
+    fetchDrivers()
   }
 
   function toggleSuspend(d: Driver) {

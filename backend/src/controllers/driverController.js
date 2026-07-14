@@ -45,16 +45,36 @@ async function create(req, res, next) {
     if (req.user.role === "DRIVER") {
       return res.status(403).json({ error: "Forbidden. Drivers cannot create drivers." });
     }
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, licenseNumber, licenseCategory, licenseExpiry } = req.body;
     const hashed = await hashPassword(password);
+    
+    const driverData = { name, email, password: hashed, phone, role: "DRIVER" };
+    
+    if (licenseNumber && licenseCategory && licenseExpiry) {
+      driverData.driverProfile = {
+        create: {
+          licenseNumber,
+          licenseCategory,
+          licenseExpiry: new Date(licenseExpiry),
+        }
+      };
+    }
+
     const driver = await prisma.user.create({
-      data: { name, email, password: hashed, phone, role: "DRIVER" },
+      data: driverData,
+      include: { driverProfile: true }
     });
     const { password: _, ...safe } = driver;
     res.status(201).json(safe);
   } catch (err) {
     if (err.code === "P2002") {
-      return res.status(409).json({ error: "Email already exists." });
+      if (err.meta?.target?.includes("email")) {
+        return res.status(400).json({ error: "Email already exists." });
+      }
+      if (err.meta?.target?.includes("licenseNumber")) {
+        return res.status(400).json({ error: "License number already exists." });
+      }
+      return res.status(400).json({ error: "Unique constraint failed." });
     }
     next(err);
   }
@@ -67,6 +87,15 @@ async function update(req, res, next) {
       return res.status(403).json({ error: "Forbidden. Can only edit own profile." });
     }
     const data = { ...req.body };
+    
+    // Extract license data before user update
+    const licenseNumber = data.licenseNumber;
+    const licenseCategory = data.licenseCategory;
+    const licenseExpiry = data.licenseExpiry;
+    delete data.licenseNumber;
+    delete data.licenseCategory;
+    delete data.licenseExpiry;
+
     // Prevent drivers from changing their role, active status, or approval status
     if (req.user.role === "DRIVER") {
       delete data.role;
@@ -77,13 +106,41 @@ async function update(req, res, next) {
     if (data.password) {
       data.password = await hashPassword(data.password);
     }
+
+    if (licenseNumber && licenseCategory && licenseExpiry) {
+      data.driverProfile = {
+        upsert: {
+          create: {
+            licenseNumber,
+            licenseCategory,
+            licenseExpiry: new Date(licenseExpiry),
+          },
+          update: {
+            licenseNumber,
+            licenseCategory,
+            licenseExpiry: new Date(licenseExpiry),
+          }
+        }
+      };
+    }
+
     const driver = await prisma.user.update({
       where: { id: req.params.id },
       data,
+      include: { driverProfile: true }
     });
     const { password, ...safe } = driver;
     res.json(safe);
   } catch (err) {
+    if (err.code === "P2002") {
+      if (err.meta?.target?.includes("email")) {
+        return res.status(400).json({ error: "Email already exists." });
+      }
+      if (err.meta?.target?.includes("licenseNumber")) {
+        return res.status(400).json({ error: "License number already exists." });
+      }
+      return res.status(400).json({ error: "Unique constraint failed." });
+    }
     next(err);
   }
 }
