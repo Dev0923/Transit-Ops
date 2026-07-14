@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, type ReactNode } from 'react'
+import { useMemo, useState, useEffect, useRef, type ReactNode } from 'react'
 import useAuth from '../../hooks/useAuth'
 import { tripService } from '../../services/tripService'
 import { vehicleService } from '../../services/vehicleService'
