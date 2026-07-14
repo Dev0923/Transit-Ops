@@ -5,6 +5,7 @@ import { vehicleService } from '../../services/vehicleService'
 import { driverService } from '../../services/driverService'
 import { sortVehiclesForSmartMatch, sortDriversForSmartMatch } from '../../utils/smartMatch'
 import TripDetailPanel from '../../components/TripDetailPanel'
+import LocationPicker from '../../components/common/LocationPicker'
 import {
   SearchIcon,
   PlusIcon,
@@ -115,6 +116,12 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const set = (k: keyof CreateState, v: string) => setForm((f) => ({ ...f, [k]: v }))
 
+  // Location picker coordinate state
+  const [sourceCoords, setSourceCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [destCoords, setDestCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [distanceAutoMode, setDistanceAutoMode] = useState(true) // true = read-only auto-calc, false = manual fallback
+  const [estimatedDuration, setEstimatedDuration] = useState<number | null>(null)
+
   // Compute available vehicle types from dbVehicles
   const vehicleTypes = useMemo(() => Array.from(new Set(dbVehicles.map(v => v.type).filter(Boolean))), [dbVehicles])
   
@@ -189,6 +196,10 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
       date: form.date,
       time: form.time,
       ownedBySelf: true,
+      sourceLat: sourceCoords?.lat,
+      sourceLng: sourceCoords?.lng,
+      destLat: destCoords?.lat,
+      destLng: destCoords?.lng,
     }
   }
 
@@ -223,12 +234,40 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto p-5">
-        <FormField label="Source" error={err('source')}>
-          <input className={inputCls(!!err('source'))} placeholder="Enter starting point" value={form.source} onChange={(e) => set('source', e.target.value)} onBlur={() => setTouched((t) => ({ ...t, source: true }))} />
-        </FormField>
-        <FormField label="Destination" error={err('destination')}>
-          <input className={inputCls(!!err('destination'))} placeholder="Enter destination" value={form.destination} onChange={(e) => set('destination', e.target.value)} onBlur={() => setTouched((t) => ({ ...t, destination: true }))} />
-        </FormField>
+        {/* Location Picker — replaces plain text Source/Destination */}
+        <LocationPicker
+          source={form.source}
+          destination={form.destination}
+          onSourceChange={(text, coords) => {
+            set('source', text)
+            if (coords) setSourceCoords(coords)
+            else {
+              setSourceCoords(null)
+              // Reset distance if source changed manually
+              if (distanceAutoMode) set('distanceKm', '')
+              setEstimatedDuration(null)
+            }
+            setTouched((t) => ({ ...t, source: true }))
+          }}
+          onDestinationChange={(text, coords) => {
+            set('destination', text)
+            if (coords) setDestCoords(coords)
+            else {
+              setDestCoords(null)
+              if (distanceAutoMode) set('distanceKm', '')
+              setEstimatedDuration(null)
+            }
+            setTouched((t) => ({ ...t, destination: true }))
+          }}
+          onRouteCalculated={(distanceKm, durationMinutes) => {
+            set('distanceKm', String(distanceKm))
+            setEstimatedDuration(durationMinutes)
+            setDistanceAutoMode(true)
+          }}
+          onRouteFailed={() => {
+            setDistanceAutoMode(false)
+          }}
+        />
 
         <FormField label="Vehicle Type" error={err('vehicleType')} hint="Filter vehicles by type (Optional)">
           <div className="relative">
@@ -306,13 +345,27 @@ function CreateTripPanel({ existing, dbVehicles, dbDrivers, user, onCancel, onSa
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-medium text-slate-400">kg</span>
             </div>
           </FormField>
-          <FormField label="Planned Distance" error={err('distanceKm')}>
+          <FormField label="Planned Distance" error={err('distanceKm')} hint={distanceAutoMode && form.distanceKm ? 'Calculated automatically based on selected route' : (!distanceAutoMode ? '⚠️ Unable to auto-calculate — enter manually' : undefined)}>
             <div className="relative">
-              <input type="number" className={`${inputCls(!!err('distanceKm'))} pr-10`} placeholder="0" value={form.distanceKm} onChange={(e) => set('distanceKm', e.target.value)} onBlur={() => setTouched((t) => ({ ...t, distanceKm: true }))} />
+              <input
+                type="number"
+                className={`${inputCls(!!err('distanceKm'))} pr-10 ${distanceAutoMode && form.distanceKm ? 'bg-slate-50 text-teal-700 font-semibold' : ''}`}
+                placeholder="0"
+                value={form.distanceKm}
+                readOnly={distanceAutoMode && !!form.distanceKm}
+                onChange={(e) => set('distanceKm', e.target.value)}
+                onBlur={() => setTouched((t) => ({ ...t, distanceKm: true }))}
+              />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-medium text-slate-400">km</span>
             </div>
           </FormField>
         </div>
+        {estimatedDuration && (
+          <div className="flex items-center gap-2 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-[12.5px] text-teal-800">
+            <svg className="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
+            Estimated Duration: <strong>{estimatedDuration >= 60 ? `${Math.floor(estimatedDuration / 60)}h ${estimatedDuration % 60}min` : `${estimatedDuration} min`}</strong>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <FormField label="Scheduled Date" error={err('date')}>
@@ -567,7 +620,7 @@ export default function TripManagement() {
   async function addTrip(t: Trip, dispatch: boolean) {
     try {
       const dateTimeString = `${t.date}T${t.time || '09:00'}:00.000Z`
-      const payload = {
+      const payload: any = {
         origin: t.source,
         destination: t.destination,
         vehicleId: t.vehicleReg,
@@ -577,6 +630,12 @@ export default function TripManagement() {
         cargoWeight: t.cargoKg,
         status: dispatch ? 'IN_PROGRESS' : 'SCHEDULED'
       }
+      // Include coordinates if available (from LocationPicker)
+      if (t.sourceLat != null) payload.sourceLat = t.sourceLat
+      if (t.sourceLng != null) payload.sourceLng = t.sourceLng
+      if (t.destLat != null) payload.destLat = t.destLat
+      if (t.destLng != null) payload.destLng = t.destLng
+
       await tripService.create(payload)
       setPanelOpen(false)
       fetchAll()
